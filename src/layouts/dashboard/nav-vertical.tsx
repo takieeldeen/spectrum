@@ -39,8 +39,8 @@ export function NavVertical({
   const renderNavVertical = (
     <>
       {slots?.topArea ?? (
-        <Box sx={{ pl: 3.5, pt: 2.5, pb: 1 }}>
-          <Logo />
+        <Box sx={{ pl: 1.5, pt: 2.5, pb: 1 }}>
+          <Logo isSingle={false} />
         </Box>
       )}
 

@@ -24,16 +24,8 @@ export type SignUpParams = {
  *************************************** */
 export const signInWithPassword = async ({ email, password }: SignInParams): Promise<void> => {
   try {
-    const params = { email, password };
-
-    const res = await axios.post(endpoints.auth.signIn, params);
-
-    const { accessToken } = res.data;
-
-    if (!accessToken) {
-      throw new Error('Access token not found in response');
-    }
-
+    // Dummy login success with a fake JWT token
+    const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksImlkIjoiMSIsInJvbGUiOiJhZG1pbiJ9.dummy';
     setSession(accessToken);
   } catch (error) {
     console.error('Error during sign in:', error);

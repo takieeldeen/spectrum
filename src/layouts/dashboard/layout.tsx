@@ -141,11 +141,6 @@ export function DashboardLayout({ sx, children, header, data }: DashboardLayoutP
                     sx={{ [theme.breakpoints.up(layoutQuery)]: { display: 'flex' } }}
                   />
                 )}
-                {/* -- Workspace popover -- */}
-                <WorkspacesPopover
-                  data={_workspaces}
-                  sx={{ color: 'var(--layout-nav-text-primary-color)' }}
-                />
               </>
             ),
             rightArea: (
