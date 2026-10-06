@@ -41,34 +41,44 @@ const ICONS = {
 
 // ----------------------------------------------------------------------
 
-export const navData = [
-  /**
-   * Overview
-   */
-  {
-    subheader: 'Overview 6.0.0',
-    items: [
-      { title: 'Dashboard', path: paths.dashboard.root, icon: ICONS.dashboard },
-      { title: 'Two', path: paths.dashboard.two, icon: ICONS.ecommerce },
-      { title: 'Three', path: paths.dashboard.three, icon: ICONS.analytics },
-    ],
-  },
-  /**
-   * Management
-   */
-  {
-    subheader: 'Management',
-    items: [
+import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
+
+export function useNavData() {
+  const { t } = useTranslation();
+
+  return useMemo(
+    () => [
+      /**
+       * Overview
+       */
       {
-        title: 'Group',
-        path: paths.dashboard.group.root,
-        icon: ICONS.user,
-        children: [
-          { title: 'Four', path: paths.dashboard.group.root },
-          { title: 'Five', path: paths.dashboard.group.five },
-          { title: 'Six', path: paths.dashboard.group.six },
+        subheader: t('overview'),
+        items: [
+          { title: t('dashboard'), path: paths.dashboard.root, icon: ICONS.dashboard },
+          { title: t('two'), path: paths.dashboard.two, icon: ICONS.ecommerce },
+          { title: t('three'), path: paths.dashboard.three, icon: ICONS.analytics },
+        ],
+      },
+      /**
+       * Management
+       */
+      {
+        subheader: t('management'),
+        items: [
+          {
+            title: t('group'),
+            path: paths.dashboard.group.root,
+            icon: ICONS.user,
+            children: [
+              { title: t('four'), path: paths.dashboard.group.root },
+              { title: t('five'), path: paths.dashboard.group.five },
+              { title: t('six'), path: paths.dashboard.group.six },
+            ],
+          },
         ],
       },
     ],
-  },
-];
+    [t]
+  );
+}

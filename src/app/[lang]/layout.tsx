@@ -1,5 +1,13 @@
 import 'src/global.css';
 
+import { Cairo } from 'next/font/google';
+
+const cairo = Cairo({
+  subsets: ['arabic'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-cairo',
+});
+
 // ----------------------------------------------------------------------
 
 import type { Viewport } from 'next';
@@ -16,6 +24,7 @@ import { MotionLazy } from 'src/components/animate/motion-lazy';
 import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/components/settings';
 
 import { AuthProvider } from 'src/auth/context/jwt';
+import { I18nProvider } from 'src/i18n/i18n-provider';
 
 // ----------------------------------------------------------------------
 
@@ -36,11 +45,14 @@ export const metadata = {
 
 type Props = {
   children: React.ReactNode;
+  params: { lang: string };
 };
 
-export default async function RootLayout({ children }: Props) {
+export default async function RootLayout({ children, params: { lang } }: Props) {
+  console.log(lang);
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} dir={dir} className={cairo.variable} suppressHydrationWarning>
       <body>
         <InitColorSchemeScript
           defaultMode={schemeConfig.defaultMode}
@@ -48,12 +60,14 @@ export default async function RootLayout({ children }: Props) {
         />
 
         <AuthProvider>
-          <SettingsProvider settings={defaultSettings}>
+          <SettingsProvider settings={{ ...defaultSettings, direction: dir }}>
             <ThemeProvider>
               <MotionLazy>
-                <ProgressBar />
-                <SettingsDrawer />
-                {children}
+                <I18nProvider lang={lang}>
+                  <ProgressBar />
+                  <SettingsDrawer />
+                  {children}
+                </I18nProvider>
               </MotionLazy>
             </ThemeProvider>
           </SettingsProvider>

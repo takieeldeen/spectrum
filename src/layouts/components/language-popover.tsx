@@ -3,7 +3,8 @@
 import type { IconButtonProps } from '@mui/material/IconButton';
 
 import { m } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useRouter, usePathname, useParams } from 'next/navigation';
+import { useCallback } from 'react';
 
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
@@ -25,17 +26,20 @@ export type LanguagePopoverProps = IconButtonProps & {
 
 export function LanguagePopover({ data = [], sx, ...other }: LanguagePopoverProps) {
   const popover = usePopover();
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
 
-  const [locale, setLocale] = useState<string>(data[0].value);
-
-  const currentLang = data.find((lang) => lang.value === locale);
+  const currentLangValue = (params.lang as string) || data[0].value;
+  const currentLang = data.find((lang) => lang.value === currentLangValue) || data[0];
 
   const handleChangeLang = useCallback(
     (newLang: string) => {
-      setLocale(newLang);
       popover.onClose();
+      const newPath = pathname.replace(`/${currentLangValue}`, `/${newLang}`);
+      router.push(newPath);
     },
-    [popover]
+    [popover, pathname, currentLangValue, router]
   );
 
   return (

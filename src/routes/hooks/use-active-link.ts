@@ -4,7 +4,14 @@ import { hasParams, removeParams, isExternalLink, removeLastSlash } from '../uti
 // ----------------------------------------------------------------------
 
 export function useActiveLink(itemPath: string, deep: boolean = true): boolean {
-  const pathname = removeLastSlash(usePathname());
+  let pathname = removeLastSlash(usePathname());
+
+  // Remove language prefix so it matches item paths
+  if (pathname.startsWith('/ar/') || pathname === '/ar') {
+    pathname = pathname.replace('/ar', '') || '/';
+  } else if (pathname.startsWith('/en/') || pathname === '/en') {
+    pathname = pathname.replace('/en', '') || '/';
+  }
 
   const pathHasParams = hasParams(itemPath);
 

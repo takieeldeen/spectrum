@@ -14,7 +14,7 @@ import { stateClasses, sharedStyles } from '../styles';
 
 import type { NavItemProps, NavItemStateProps } from '../types';
 
-// ----------------------------------------------------------------------
+import { useTheme } from '@mui/material/styles';
 
 export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(
   (
@@ -38,6 +38,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(
     },
     ref
   ) => {
+    const theme = useTheme();
     const navItem = useNavItem({
       path,
       icon,
@@ -100,7 +101,13 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(
 
         {hasChild && (
           <Iconify
-            icon={open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'}
+            icon={
+              open
+                ? 'eva:arrow-ios-downward-fill'
+                : theme.direction !== 'rtl'
+                  ? 'eva:arrow-ios-back-fill'
+                  : 'eva:arrow-ios-forward-fill'
+            }
             className={navSectionClasses.item.arrow}
           />
         )}

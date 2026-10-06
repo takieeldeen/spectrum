@@ -5,6 +5,8 @@ import IconButton from '@mui/material/IconButton';
 
 import { varAlpha } from 'src/theme/styles';
 
+import { useTheme } from '@mui/material/styles';
+
 // ----------------------------------------------------------------------
 
 export type NavToggleButtonProps = IconButtonProps & {
@@ -12,6 +14,8 @@ export type NavToggleButtonProps = IconButtonProps & {
 };
 
 export function NavToggleButton({ isNavMini, sx, ...other }: NavToggleButtonProps) {
+  const theme = useTheme();
+
   return (
     <IconButton
       size="small"
@@ -24,12 +28,11 @@ export function NavToggleButton({ isNavMini, sx, ...other }: NavToggleButtonProp
         transform: 'translateX(-50%)',
         zIndex: 'var(--layout-nav-zIndex)',
         left: isNavMini ? 'var(--layout-nav-mini-width)' : 'var(--layout-nav-vertical-width)',
-        border: (theme) => `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
-        transition: (theme) =>
-          theme.transitions.create(['left'], {
-            easing: 'var(--layout-transition-easing)',
-            duration: 'var(--layout-transition-duration)',
-          }),
+        border: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
+        transition: theme.transitions.create(['left'], {
+          easing: 'var(--layout-transition-easing)',
+          duration: 'var(--layout-transition-duration)',
+        }),
         '&:hover': {
           color: 'text.primary',
           bgcolor: 'background.neutral',
@@ -42,9 +45,9 @@ export function NavToggleButton({ isNavMini, sx, ...other }: NavToggleButtonProp
         sx={{
           width: 16,
           height: 16,
-          ...(isNavMini && {
-            transform: 'scaleX(-1)',
-          }),
+          transform: theme.direction === 'rtl'
+            ? (isNavMini ? 'scaleX(1)' : 'scaleX(-1)')
+            : (isNavMini ? 'scaleX(-1)' : 'scaleX(1)'),
         }}
       >
         {/* https://icon-sets.iconify.design/eva/arrow-ios-back-fill/ */}

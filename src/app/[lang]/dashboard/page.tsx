@@ -1,3 +1,4 @@
+import { Stack } from '@mui/material';
 import { CONFIG } from 'src/config-global';
 
 import { BlankView } from 'src/sections/blank/view';
@@ -7,5 +8,5 @@ import { BlankView } from 'src/sections/blank/view';
 export const metadata = { title: `Dashboard - ${CONFIG.appName}` };
 
 export default function Page() {
-  return <BlankView title="Page one" />;
+  return <Stack>Hello World</Stack>;
 }

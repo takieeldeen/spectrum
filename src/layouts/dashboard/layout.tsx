@@ -32,7 +32,7 @@ import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
 import { ContactsPopover } from '../components/contacts-popover';
 import { WorkspacesPopover } from '../components/workspaces-popover';
-import { navData as dashboardNavData } from '../config-nav-dashboard';
+import { useNavData } from '../config-nav-dashboard';
 import { NotificationsDrawer } from '../components/notifications-drawer';
 
 // ----------------------------------------------------------------------
@@ -59,6 +59,7 @@ export function DashboardLayout({ sx, children, header, data }: DashboardLayoutP
 
   const layoutQuery: Breakpoint = 'lg';
 
+  const dashboardNavData = useNavData();
   const navData = data?.nav ?? dashboardNavData;
 
   const isNavMini = settings.navLayout === 'mini';
@@ -220,7 +221,9 @@ export function DashboardLayout({ sx, children, header, data }: DashboardLayoutP
         ...sx,
       }}
     >
-      <Main isNavHorizontal={isNavHorizontal}>{children}</Main>
+      <Main isNavHorizontal={isNavHorizontal} sx={{ padding: 3 }}>
+        {children}
+      </Main>
     </LayoutSection>
   );
 }

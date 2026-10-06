@@ -20,7 +20,11 @@ export function createTheme(settings: SettingsState): Theme {
     components,
     typography: {
       ...typography,
-      fontFamily: setFont(settings.fontFamily),
+      fontFamily: settings.direction === 'rtl' ? 'var(--font-cairo), sans-serif' : setFont(settings.fontFamily),
+      fontSecondaryFamily: settings.direction === 'rtl' ? 'var(--font-cairo), sans-serif' : typography.fontSecondaryFamily,
+      h1: { ...typography.h1, fontFamily: settings.direction === 'rtl' ? 'var(--font-cairo), sans-serif' : typography.h1?.fontFamily },
+      h2: { ...typography.h2, fontFamily: settings.direction === 'rtl' ? 'var(--font-cairo), sans-serif' : typography.h2?.fontFamily },
+      h3: { ...typography.h3, fontFamily: settings.direction === 'rtl' ? 'var(--font-cairo), sans-serif' : typography.h3?.fontFamily },
     },
     cssVarPrefix: '',
     shouldSkipGeneratingVar,
