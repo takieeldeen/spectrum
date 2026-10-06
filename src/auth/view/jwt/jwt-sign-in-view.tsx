@@ -24,6 +24,8 @@ import { Form, Field } from 'src/components/hook-form';
 import { useAuthContext } from '../../hooks';
 import { FormHead } from '../../components/form-head';
 import { signInWithPassword } from '../../context/jwt';
+import { Stack, useTheme } from '@mui/material';
+import Image from 'next/image';
 
 // ----------------------------------------------------------------------
 
@@ -44,7 +46,7 @@ export const SignInSchema = zod.object({
 
 export function JwtSignInView() {
   const router = useRouter();
-
+  const theme = useTheme();
   const { checkUserSession } = useAuthContext();
 
   const [errorMsg, setErrorMsg] = useState('');
@@ -113,12 +115,18 @@ export function JwtSignInView() {
 
       <LoadingButton
         fullWidth
-        color="inherit"
         size="large"
         type="submit"
         variant="contained"
         loading={isSubmitting}
         loadingIndicator="Sign in..."
+        sx={{
+          bgcolor: '#0f766e',
+          color: 'white',
+          '&:hover': {
+            bgcolor: '#006666',
+          },
+        }}
       >
         Sign in
       </LoadingButton>
@@ -127,24 +135,33 @@ export function JwtSignInView() {
 
   return (
     <>
+      <Stack style={{ height: 120, position: 'relative' }}>
+        <Image
+          src="/logo/spectrum-full-logo.png"
+          style={{ objectFit: 'contain' }}
+          fill
+          alt="Logo"
+        />
+      </Stack>
       <FormHead
+        textAlign="center"
         title="Sign in to your account"
+        alignItems="center"
         description={
           <>
             {`Don’t have an account? `}
-            <Link component={RouterLink} href={paths.auth.jwt.signUp} variant="subtitle2">
+            <Link
+              component={RouterLink}
+              href={paths.auth.jwt.signUp}
+              variant="subtitle2"
+              style={{ color: theme.palette.text.primary }}
+            >
               Get started
             </Link>
           </>
         }
-        sx={{ textAlign: { xs: 'center', md: 'left' } }}
+        sx={{ textAlign: { xs: 'center', md: 'left' }, gap: 0.2 }}
       />
-
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Use <strong>{defaultValues.email}</strong>
-        {' with password '}
-        <strong>{defaultValues.password}</strong>
-      </Alert>
 
       {!!errorMsg && (
         <Alert severity="error" sx={{ mb: 3 }}>
