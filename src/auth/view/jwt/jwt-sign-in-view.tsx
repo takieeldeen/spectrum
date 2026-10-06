@@ -26,28 +26,34 @@ import { FormHead } from '../../components/form-head';
 import { signInWithPassword } from '../../context/jwt';
 import { Stack, useTheme } from '@mui/material';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 
 // ----------------------------------------------------------------------
 
-export type SignInSchemaType = zod.infer<typeof SignInSchema>;
+export type SignInSchemaType = zod.infer<ReturnType<typeof useSignInSchema>>;
 
-export const SignInSchema = zod.object({
-  email: zod
-    .string()
-    .min(1, { message: 'Email is required!' })
-    .email({ message: 'Email must be a valid email address!' }),
-  password: zod
-    .string()
-    .min(1, { message: 'Password is required!' })
-    .min(6, { message: 'Password must be at least 6 characters!' }),
-});
+export function useSignInSchema() {
+  const { t } = useTranslation();
+  return zod.object({
+    email: zod
+      .string()
+      .min(1, { message: t('LOGIN_PAGE.EMAIL_REQUIRED') })
+      .email({ message: t('LOGIN_PAGE.EMAIL_INVALID') }),
+    password: zod
+      .string()
+      .min(1, { message: t('LOGIN_PAGE.PASSWORD_REQUIRED') })
+      .min(6, { message: t('LOGIN_PAGE.PASSWORD_MIN') }),
+  });
+}
 
 // ----------------------------------------------------------------------
 
 export function JwtSignInView() {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { checkUserSession } = useAuthContext();
+  const schema = useSignInSchema();
 
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -59,7 +65,7 @@ export function JwtSignInView() {
   };
 
   const methods = useForm<SignInSchemaType>({
-    resolver: zodResolver(SignInSchema),
+    resolver: zodResolver(schema),
     defaultValues,
   });
 
@@ -82,7 +88,7 @@ export function JwtSignInView() {
 
   const renderForm = (
     <Box gap={3} display="flex" flexDirection="column">
-      <Field.Text name="email" label="Email address" InputLabelProps={{ shrink: true }} />
+      <Field.Text name="email" label={t('LOGIN_PAGE.EMAIL_ADDRESS')} InputLabelProps={{ shrink: true }} />
 
       <Box gap={1.5} display="flex" flexDirection="column">
         <Link
@@ -92,12 +98,12 @@ export function JwtSignInView() {
           color="inherit"
           sx={{ alignSelf: 'flex-end' }}
         >
-          Forgot password?
+          {t('LOGIN_PAGE.FORGOT_PASSWORD')}
         </Link>
 
         <Field.Text
           name="password"
-          label="Password"
+          label={t('LOGIN_PAGE.PASSWORD')}
           placeholder="6+ characters"
           type={password.value ? 'text' : 'password'}
           InputLabelProps={{ shrink: true }}
@@ -119,7 +125,7 @@ export function JwtSignInView() {
         type="submit"
         variant="contained"
         loading={isSubmitting}
-        loadingIndicator="Sign in..."
+        loadingIndicator={t('LOGIN_PAGE.SIGNING_IN')}
         sx={{
           bgcolor: '#0f766e',
           color: 'white',
@@ -128,7 +134,7 @@ export function JwtSignInView() {
           },
         }}
       >
-        Sign in
+        {t('LOGIN_PAGE.SIGN_IN')}
       </LoadingButton>
     </Box>
   );
@@ -145,18 +151,18 @@ export function JwtSignInView() {
       </Stack>
       <FormHead
         textAlign="center"
-        title="Sign in to your account"
+        title={t('LOGIN_PAGE.SIGN_IN_TITLE')}
         alignItems="center"
         description={
           <>
-            {`Don’t have an account? `}
+            {`${t('LOGIN_PAGE.DONT_HAVE_ACCOUNT')} `}
             <Link
               component={RouterLink}
               href={paths.auth.jwt.signUp}
               variant="subtitle2"
               style={{ color: theme.palette.text.primary }}
             >
-              Get started
+              {t('LOGIN_PAGE.GET_STARTED')}
             </Link>
           </>
         }

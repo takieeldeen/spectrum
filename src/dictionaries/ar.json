@@ -1,12 +1,28 @@
 {
-  "dashboard": "لوحة القيادة",
-  "overview": "نظرة عامة",
-  "management": "الإدارة",
-  "two": "اثنين",
-  "three": "ثلاثة",
-  "group": "مجموعة",
-  "four": "أربعة",
-  "five": "خمسة",
-  "six": "ستة",
-  "login": "تسجيل الدخول"
+  "NAVBAR": {
+    "DASHBOARD": "لوحة القيادة",
+    "OVERVIEW": "نظرة عامة",
+    "MANAGEMENT": "الإدارة",
+    "TWO": "اثنين",
+    "THREE": "ثلاثة",
+    "GROUP": "مجموعة",
+    "FOUR": "أربعة",
+    "FIVE": "خمسة",
+    "SIX": "ستة",
+    "LOGIN": "تسجيل الدخول"
+  },
+  "LOGIN_PAGE": {
+    "SIGN_IN_TITLE": "سجل الدخول إلى حسابك",
+    "DONT_HAVE_ACCOUNT": "ليس لديك حساب؟",
+    "GET_STARTED": "البدء",
+    "EMAIL_ADDRESS": "عنوان البريد الإلكتروني",
+    "PASSWORD": "كلمة المرور",
+    "FORGOT_PASSWORD": "هل نسيت كلمة المرور؟",
+    "SIGN_IN": "تسجيل الدخول",
+    "SIGNING_IN": "جاري تسجيل الدخول...",
+    "EMAIL_REQUIRED": "البريد الإلكتروني مطلوب!",
+    "EMAIL_INVALID": "يجب أن يكون البريد الإلكتروني صالحاً!",
+    "PASSWORD_REQUIRED": "كلمة المرور مطلوبة!",
+    "PASSWORD_MIN": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل!"
+  }
 }

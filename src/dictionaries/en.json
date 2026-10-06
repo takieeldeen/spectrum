@@ -1,12 +1,28 @@
 {
-  "dashboard": "Dashboard",
-  "overview": "Overview 6.0.0",
-  "management": "Management",
-  "two": "Two",
-  "three": "Three",
-  "group": "Group",
-  "four": "Four",
-  "five": "Five",
-  "six": "Six",
-  "login": "Login"
+  "NAVBAR": {
+    "DASHBOARD": "Dashboard",
+    "OVERVIEW": "Overview 6.0.0",
+    "MANAGEMENT": "Management",
+    "TWO": "Two",
+    "THREE": "Three",
+    "GROUP": "Group",
+    "FOUR": "Four",
+    "FIVE": "Five",
+    "SIX": "Six",
+    "LOGIN": "Login"
+  },
+  "LOGIN_PAGE": {
+    "SIGN_IN_TITLE": "Sign in to your account",
+    "DONT_HAVE_ACCOUNT": "Don’t have an account?",
+    "GET_STARTED": "Get started",
+    "EMAIL_ADDRESS": "Email address",
+    "PASSWORD": "Password",
+    "FORGOT_PASSWORD": "Forgot password?",
+    "SIGN_IN": "Sign in",
+    "SIGNING_IN": "Sign in...",
+    "EMAIL_REQUIRED": "Email is required!",
+    "EMAIL_INVALID": "Email must be a valid email address!",
+    "PASSWORD_REQUIRED": "Password is required!",
+    "PASSWORD_MIN": "Password must be at least 6 characters!"
+  }
 }

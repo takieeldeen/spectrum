@@ -53,27 +53,27 @@ export function useNavData() {
        * Overview
        */
       {
-        subheader: t('overview'),
+        subheader: t('NAVBAR.OVERVIEW'),
         items: [
-          { title: t('dashboard'), path: paths.dashboard.root, icon: ICONS.dashboard },
-          { title: t('two'), path: paths.dashboard.two, icon: ICONS.ecommerce },
-          { title: t('three'), path: paths.dashboard.three, icon: ICONS.analytics },
+          { title: t('NAVBAR.DASHBOARD'), path: paths.dashboard.root, icon: ICONS.dashboard },
+          { title: t('NAVBAR.TWO'), path: paths.dashboard.two, icon: ICONS.ecommerce },
+          { title: t('NAVBAR.THREE'), path: paths.dashboard.three, icon: ICONS.analytics },
         ],
       },
       /**
        * Management
        */
       {
-        subheader: t('management'),
+        subheader: t('NAVBAR.MANAGEMENT'),
         items: [
           {
-            title: t('group'),
+            title: t('NAVBAR.GROUP'),
             path: paths.dashboard.group.root,
             icon: ICONS.user,
             children: [
-              { title: t('four'), path: paths.dashboard.group.root },
-              { title: t('five'), path: paths.dashboard.group.five },
-              { title: t('six'), path: paths.dashboard.group.six },
+              { title: t('NAVBAR.FOUR'), path: paths.dashboard.group.root },
+              { title: t('NAVBAR.FIVE'), path: paths.dashboard.group.five },
+              { title: t('NAVBAR.SIX'), path: paths.dashboard.group.six },
             ],
           },
         ],
