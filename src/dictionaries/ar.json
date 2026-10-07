@@ -3,8 +3,9 @@
     "DASHBOARD": "لوحة القيادة",
     "OVERVIEW": "نظرة عامة",
     "MANAGEMENT": "الإدارة",
-    "TWO": "اثنين",
+    "ELECTRIC_PLUGS": "المقابس الكهربائية",
     "THREE": "ثلاثة",
+    "DEVICES": "الأجهزة",
     "GROUP": "مجموعة",
     "FOUR": "أربعة",
     "FIVE": "خمسة",
@@ -24,5 +25,26 @@
     "EMAIL_INVALID": "يجب أن يكون البريد الإلكتروني صالحاً!",
     "PASSWORD_REQUIRED": "كلمة المرور مطلوبة!",
     "PASSWORD_MIN": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل!"
+  },
+  "DASHBOARD": {
+    "MY_DEVICES": "أجهزتي",
+    "ENERGY_CONSUMPTION": "استهلاك الطاقة",
+    "DAY": "يوم",
+    "WEEK": "أسبوع",
+    "MONTH": "شهر",
+    "ELECTRICITY_CONSUMPTION_SERIES": "استهلاك الكهرباء",
+    "MAX_LIMIT": "الحد الأقصى",
+    "DEVICE_DETAILS": "تفاصيل الجهاز",
+    "ACTIVE_FOR_THREE_HOURS": "نشط لمدة ثلاث ساعات",
+    "KWH": "كيلوواط/ساعة",
+    "TOTAL_ENERGY": "إجمالي استهلاك الطاقة",
+    "AVG_TEMPERATURE": "متوسط درجات الحرارة",
+    "ESTIMATED_COST": "التكلفة التقديرية",
+    "ONLINE": "متصل",
+    "OFFLINE": "غير متصل",
+    "FREE_PLUGS": "مقابس متاحة",
+    "TOTAL": "الإجمالي",
+    "PLUGS_STATUS": "حالة المقابس",
+    "LAST_7_DAYS": "آخر 7 أيام"
   }
 }

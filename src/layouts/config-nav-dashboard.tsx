@@ -43,6 +43,7 @@ const ICONS = {
 
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
+import { Iconify } from 'src/components/iconify';
 
 export function useNavData() {
   const { t } = useTranslation();
@@ -56,8 +57,16 @@ export function useNavData() {
         subheader: t('NAVBAR.OVERVIEW'),
         items: [
           { title: t('NAVBAR.DASHBOARD'), path: paths.dashboard.root, icon: ICONS.dashboard },
-          { title: t('NAVBAR.TWO'), path: paths.dashboard.two, icon: ICONS.ecommerce },
-          { title: t('NAVBAR.THREE'), path: paths.dashboard.three, icon: ICONS.analytics },
+          {
+            title: t('NAVBAR.ELECTRIC_PLUGS'),
+            path: paths.dashboard.two,
+            icon: <Iconify icon="mdi:power-plug" />,
+          },
+          {
+            title: t('NAVBAR.DEVICES'),
+            path: paths.dashboard.three,
+            icon: <Iconify icon="material-symbols:devices" />,
+          },
         ],
       },
       /**

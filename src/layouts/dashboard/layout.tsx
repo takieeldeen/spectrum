@@ -96,7 +96,10 @@ export function DashboardLayout({ sx, children, header, data }: DashboardLayoutP
               },
             },
           }}
-          sx={header?.sx}
+          sx={{
+            borderBottom: (theme) => `solid 1px ${theme.vars.palette.divider}`,
+            ...header?.sx,
+          }}
           slots={{
             topArea: (
               <Alert severity="info" sx={{ display: 'none', borderRadius: 0 }}>
