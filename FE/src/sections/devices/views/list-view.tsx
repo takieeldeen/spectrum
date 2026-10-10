@@ -1,0 +1,123 @@
+'use client';
+import { Stack, Typography, CircularProgress, Box, useTheme, Fade, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import DeviceNewEditForm from '../device-new-edit-form';
+import { useGetDevices } from 'src/api/device';
+import { Iconify } from 'src/components/iconify';
+import DeviceCard from '../device-card';
+import DeviceCardSkeleton from '../device-card-skeleton';
+import ErrorView from './error-view';
+
+function DevicesListView() {
+  const { t, i18n } = useTranslation();
+  const theme = useTheme();
+  const { data: devices, isLoading, error } = useGetDevices();
+  const isEmpty = devices?.length === 0 && !isLoading && !error;
+  const [openForm, setOpenForm] = useState(false);
+
+  return (
+    <>
+      <Stack spacing={3} sx={{ flex: 1 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          sx={{ marginBottom: 3 }}
+        >
+          <Typography variant="h3">{t('NAVBAR.DEVICES')}</Typography>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="ep:plus" />}
+            color="primary"
+            onClick={() => setOpenForm(true)}
+          >
+            {t('NEW_DEVICE', 'اضافة جهاز جديد')}
+          </Button>
+        </Stack>
+
+        <Fade in={!!error} timeout={{ enter: 500, exit: 0 }} unmountOnExit>
+          <ErrorView />
+        </Fade>
+        <Fade in={isEmpty} timeout={{ enter: 500, exit: 0 }} unmountOnExit>
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ flex: 1, height: '100%', mt: 8 }}
+            spacing={3}
+          >
+            <Box
+              component="img"
+              src={`/assets/images/states/empty-${theme.palette.mode}.png`}
+              alt="empty"
+              sx={{ width: 1, maxWidth: '30%' }}
+            />
+            <Stack spacing={1} alignItems="center">
+              <Typography variant="h5">{t('NO_DEVICES_FOUND', 'لا توجد أجهزة بعد')}</Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: 'center', maxWidth: 400 }}
+              >
+                {t(
+                  'EMPTY_DEVICES_DESCRIPTION',
+                  'لم تقم بإضافة أي أجهزة حتى الآن. يمكنك إضافة جهاز جديد للبدء في التحكم به وتتبع استهلاكه.'
+                )}
+              </Typography>
+            </Stack>
+            <Button
+              variant="outlined"
+              size="large"
+              color="primary"
+              onClick={() => setOpenForm(true)}
+              startIcon={<Iconify icon="ep:plus" />}
+            >
+              {t('NEW_DEVICE', 'اضافة جهاز جديد')}
+            </Button>
+          </Stack>
+        </Fade>
+
+        <Fade in={isLoading} timeout={{ enter: 500, exit: 0 }} unmountOnExit>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, minmax(0, 1fr))',
+                lg: 'repeat(3, minmax(0, 1fr))',
+                xl: 'repeat(4, minmax(0, 1fr))',
+              },
+              gap: 2,
+              alignItems: 'start',
+            }}
+          >
+            {[...Array(8)].map((_, index) => (
+              <DeviceCardSkeleton key={index} />
+            ))}
+          </Box>
+        </Fade>
+
+        <Fade in={!isLoading && !isEmpty} timeout={{ enter: 500, exit: 0 }} unmountOnExit>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, minmax(0, 1fr))',
+                lg: 'repeat(3, minmax(0, 1fr))',
+                xl: 'repeat(4, minmax(0, 1fr))',
+              },
+              gap: 2,
+              alignItems: 'start',
+            }}
+          >
+            {devices?.map((device) => <DeviceCard key={device._id} device={device} />)}
+          </Box>
+        </Fade>
+      </Stack>
+
+      <DeviceNewEditForm open={openForm} onClose={() => setOpenForm(false)} />
+    </>
+  );
+}
+
+export default DevicesListView;
