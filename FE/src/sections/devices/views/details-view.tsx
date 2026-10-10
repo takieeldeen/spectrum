@@ -62,7 +62,7 @@ export default function DeviceDetailsView({ deviceId }: Props) {
           <Button
             sx={{ minWidth: 120 }}
             size="large"
-            variant="contained"
+            variant="outlined"
             color="error"
             startIcon={<Iconify icon="lucide:trash-2" />}
           >
@@ -243,10 +243,10 @@ export default function DeviceDetailsView({ deviceId }: Props) {
           </Card>
         </Stack>
         <Stack flex={{ md: 5, xs: 1 }} spacing={2}>
-          <Card>Consumption Curve</Card>
+          <Card sx={{p:3}}>Consumption Curve</Card>
           <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-            <Card sx={{ flex: 1 }}>Statistics</Card>
-            <Card sx={{ flex: 1 }}>Settings</Card>
+            <Card sx={{ flex: 1 ,p:3}}>Statistics</Card>
+            <Card sx={{ flex: 1,p:3 }}>Settings</Card>
           </Stack>
         </Stack>
       </Stack>
