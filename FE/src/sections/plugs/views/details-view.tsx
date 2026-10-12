@@ -21,6 +21,7 @@ import { varAlpha } from 'src/theme/styles';
 import ConsumptionTrack from 'src/sections/dashboard/electricity-consumption';
 import PlugConsumptionCurve from '../plug-tempreture-curve';
 import PlugPowerCurve from '../plug-power-curve';
+import PlugNewEditForm from '../plug-new-edit-form';
 
 type Props = {
   id: string;
@@ -32,10 +33,10 @@ function PlugDetailsView({ id }: Props) {
   const { data: plug, isLoading } = useGetPlug(id);
   const { liveData, isConnected, sendOrder, toggleOutlet, toggleMultipleOutlets } =
     usePlugSocket(id);
-  console.log(liveData, isConnected);
 
   // Track the target state for each outlet while waiting for hardware confirmation
   const [targetStates, setTargetStates] = useState<Record<number, boolean>>({});
+  const [openEdit, setOpenEdit] = useState(false);
 
   const handleToggleOutlet = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>, checked: boolean, num: number) => {
@@ -55,7 +56,7 @@ function PlugDetailsView({ id }: Props) {
       3: !ANY_SWITCH_ON,
       4: !ANY_SWITCH_ON,
     }));
-  }, []);
+  }, [ANY_SWITCH_ON, toggleMultipleOutlets]);
 
   // Clear loading state once the hardware reports the expected state
   useEffect(() => {
@@ -100,6 +101,7 @@ function PlugDetailsView({ id }: Props) {
             size="large"
             startIcon={<Iconify icon="lucide:pencil" />}
             color="info"
+            onClick={() => setOpenEdit(true)}
           >
             {t('EDIT')}
           </Button>
@@ -113,6 +115,7 @@ function PlugDetailsView({ id }: Props) {
           </Button>
         </Stack>
       </Stack>
+      <PlugNewEditForm currentPlug={plug} open={openEdit} onClose={() => setOpenEdit(false)} />
       <Box sx={{ width: '50%', alignSelf: 'center' }}>
         {liveData?.outlets && <ElectricPlug outlets={liveData?.outlets} />}
       </Box>

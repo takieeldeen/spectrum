@@ -37,3 +37,32 @@ export const useGetPlug = (plugId: string) => {
     enabled: !!plugId,
   });
 };
+
+export const useUpdatePlug = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await axiosInstance.put(`/plugs/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugs'] });
+      queryClient.invalidateQueries({ queryKey: ['plug'] });
+    },
+  });
+};
+
+export const useDeletePlug = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await axiosInstance.delete(`/plugs/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugs'] });
+    },
+  });
+};

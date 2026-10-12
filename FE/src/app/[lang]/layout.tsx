@@ -26,6 +26,7 @@ import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/component
 import { AuthProvider } from 'src/auth/context/jwt';
 import { I18nProvider } from 'src/i18n/i18n-provider';
 import { ReactQueryProvider } from 'src/components/react-query/query-provider';
+import { SnackbarProvider } from 'src/components/snackbar';
 
 // ----------------------------------------------------------------------
 
@@ -66,9 +67,11 @@ export default async function RootLayout({ children, params: { lang } }: Props) 
               <ThemeProvider>
                 <MotionLazy>
                   <I18nProvider lang={lang}>
-                    <ProgressBar />
-                    <SettingsDrawer />
-                    {children}
+                    <SnackbarProvider>
+                      <ProgressBar />
+                      <SettingsDrawer />
+                      {children}
+                    </SnackbarProvider>
                   </I18nProvider>
                 </MotionLazy>
               </ThemeProvider>

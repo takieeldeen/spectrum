@@ -43,7 +43,8 @@ function PlugPowerCurve() {
     xaxis: {
       type: 'datetime',
       categories: chart.categories,
-      //   reversed: i18n.language === 'ar',
+      // @ts-ignore
+      reversed: i18n.language === 'ar',
     },
     tooltip: { x: { format: 'dd/MM/yy HH:mm' } },
   });

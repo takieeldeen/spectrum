@@ -22,11 +22,22 @@ import * as Yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useForm, Controller } from 'react-hook-form';
 import { Form, RHFTextField } from 'src/components/hook-form';
-import { useCreatePlug } from 'src/api/plug';
-export default function PlugNewEditForm() {
+import { useUpdatePlug, useCreatePlug } from 'src/api/plug';
+import { useGetUnassignedDevices } from 'src/api/device';
+import i18n from 'src/i18n';
+
+type Props = {
+  currentPlug?: any;
+  open: boolean;
+  onClose: () => void;
+};
+
+export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+
+  const isEdit = !!currentPlug;
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -34,6 +45,24 @@ export default function PlugNewEditForm() {
   });
 
   const createPlugMutation = useCreatePlug();
+  const updatePlugMutation = useUpdatePlug();
+
+  const { data: availableDevices = [], isLoading: isLoadingDevices } = useGetUnassignedDevices(
+    currentPlug ? currentPlug.id || currentPlug._id : undefined
+  );
+
+  const defaultDevices = React.useMemo(() => {
+    const devicesMap: any = { device1: '', device2: '', device3: '', device4: '' };
+    if (!currentPlug || !availableDevices.length) return devicesMap;
+
+    availableDevices.forEach((d) => {
+      const plugId = currentPlug.id || currentPlug._id;
+      if (d.plugId === plugId && d.plugPort) {
+        devicesMap[`device${d.plugPort}`] = d._id;
+      }
+    });
+    return devicesMap;
+  }, [currentPlug, availableDevices]);
 
   const PlugSchema = Yup.object().shape({
     name: Yup.string().required(
@@ -53,37 +82,65 @@ export default function PlugNewEditForm() {
     device4: Yup.string().nullable(),
   });
 
-  const methods = useForm({
-    resolver: yupResolver(PlugSchema),
-    defaultValues: {
-      name: '',
-      arabicName: '',
-      serialNumber: '',
-      ipAddress: '',
-      room: '',
-      device1: '',
-      device2: '',
-      device3: '',
-      device4: '',
-    },
+  type FormValues = {
+    name: string;
+    arabicName: string;
+    serialNumber: string;
+    ipAddress: string;
+    room: string;
+    device1: string;
+    device2: string;
+    device3: string;
+    device4: string;
+  };
+
+  const defaultValues: FormValues = React.useMemo(
+    () => ({
+      name: currentPlug?.name || '',
+      arabicName: currentPlug?.arabicName || '',
+      serialNumber: currentPlug?.serialNumber || '',
+      ipAddress: currentPlug?.ipAddress || '',
+      room: currentPlug?.roomId || '',
+      device1: defaultDevices.device1 || '',
+      device2: defaultDevices.device2 || '',
+      device3: defaultDevices.device3 || '',
+      device4: defaultDevices.device4 || '',
+    }),
+    [currentPlug, defaultDevices]
+  );
+
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(PlugSchema) as any,
+    defaultValues,
   });
 
   const { handleSubmit, reset } = methods;
 
-  const handleOpen = () => setOpen(true);
+  React.useEffect(() => {
+    if (open) {
+      reset(defaultValues);
+    }
+  }, [open, defaultValues, reset]);
+
   const handleClose = () => {
     reset();
-    setOpen(false);
+    if (onClose) onClose();
   };
 
   const { isSubmitting } = methods.formState;
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await createPlugMutation.mutateAsync(data);
+      if (isEdit) {
+        await updatePlugMutation.mutateAsync({ id: currentPlug.id || currentPlug._id, data });
+      } else {
+        await createPlugMutation.mutateAsync(data);
+      }
       setSnackbar({
         open: true,
-        message: t('PLUG_CREATED_SUCCESSFULLY', 'Plug was created successfully'),
+        message: isEdit
+          ? t('PLUG_UPDATED_SUCCESSFULLY', 'Plug was updated successfully')
+          : t('PLUG_CREATED_SUCCESSFULLY', 'Plug was created successfully'),
         severity: 'success',
       });
       handleClose();
@@ -103,14 +160,6 @@ export default function PlugNewEditForm() {
 
   return (
     <>
-      <Button
-        variant="contained"
-        startIcon={<Iconify icon="ep:plus" />}
-        color="primary"
-        onClick={handleOpen}
-      >
-        اضافة مقبس جديد
-      </Button>
 
       <Drawer
         open={open}
@@ -191,21 +240,29 @@ export default function PlugNewEditForm() {
                     <Controller
                       name={`device${num}` as any}
                       control={methods.control}
-                      render={({ field, fieldState: { error } }) => (
-                        <Autocomplete
-                          {...field}
-                          options={[]} // Empty for now; populated later when Device entities exist
-                          onChange={(event, newValue) => field.onChange(newValue)}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder={t('SELECT_DEVICE', 'Select a device')}
-                              error={!!error}
-                              helperText={error?.message}
-                            />
-                          )}
-                        />
-                      )}
+                      render={({ field, fieldState: { error } }) => {
+                        const valueObj = availableDevices.find((d) => d._id === field.value) || null;
+                        return (
+                          <Autocomplete
+                            value={valueObj}
+                            options={availableDevices}
+                            loading={isLoadingDevices}
+                            getOptionLabel={(option) =>
+                              i18n.language === "ar"? option.nameAr || option.nameEn : option.nameEn
+                            }
+                            isOptionEqualToValue={(option, val) => option._id === val._id}
+                            onChange={(event, newValue) => field.onChange(newValue ? newValue._id : '')}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                placeholder={t('SELECT_DEVICE', 'Select a device')}
+                                error={!!error}
+                                helperText={error?.message}
+                              />
+                            )}
+                          />
+                        );
+                      }}
                     />
                   </Stack>
                 ))}

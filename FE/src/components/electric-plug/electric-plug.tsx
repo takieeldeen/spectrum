@@ -20,6 +20,7 @@ type PlugProps = {
 
 function ElectricPlug({ outlets }: PlugProps) {
   const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const allOffline = Object.values(outlets ?? {}).every((outlet) => !outlet.on);
   return (
     // Plug
@@ -38,11 +39,11 @@ function ElectricPlug({ outlets }: PlugProps) {
             width: '100%',
             aspectRatio: 4.5,
             // backgroundColor: 'red',
-            borderRadius: { lg: '2cqw', md: '1cqw', xs: '1cqw' },
+            borderRadius: { lg: '1cqw', md: '1cqw', xs: '1cqw' },
             p: '1%',
             borderWidth: 1,
             borderStyle: 'solid',
-            borderColor: theme.palette.grey[400],
+            borderColor: theme.palette.background.paper,
             boxShadow: '3px 2px 1.5rem 15px rgba(0,0,0,0.1)',
           }}
           direction="row"
@@ -78,17 +79,18 @@ function ElectricPlug({ outlets }: PlugProps) {
                   aspectRatio: 1,
                   borderWidth: '0.3cqw',
                   borderStyle: 'solid',
-                  borderColor: theme.palette.grey[400],
+                  borderColor: allOffline ? theme.palette.warning.main :theme.palette.primary.main,
                   borderRadius: '50%',
                   alignItems: 'center',
                   justifyContent: 'center',
                   display: 'flex',
+                  transition:"all 0.3s"
                 }}
               >
                 <Iconify
                   icon="charm:power"
                   width={'85%'}
-                  color={theme.palette.grey[400]}
+                  color={allOffline ? theme.palette.warning.main :theme.palette.primary.main}
                   sx={{
                     transition: 'all 0.3s',
                   }}
@@ -113,7 +115,7 @@ function ElectricPlug({ outlets }: PlugProps) {
                 sx={{
                   height: '100%',
                   flex: 1,
-                  backgroundColor: '#eee',
+                  backgroundColor: theme.palette.background.neutral,
                   borderRadius: 1.5,
                   boxShadow: ' 0 0 10px rgba(0,0,0,0.3)',
                 }}
@@ -127,7 +129,7 @@ function ElectricPlug({ outlets }: PlugProps) {
                   <Box
                     key={i}
                     sx={{
-                      backgroundColor: '#bbb',
+                      backgroundColor: isDark ? theme.palette.background.default : theme.palette.grey[600],
                       height: '70%',
                       aspectRatio: 1 / 6,
                       borderRadius: 2,

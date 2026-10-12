@@ -1,0 +1,1 @@
+sed -i '' -e 's/export default function PlugNewEditForm() {/type Props = {\n  currentPlug?: any;\n  open: boolean;\n  onClose: () => void;\n};\n\nexport default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {/' src/sections/plugs/plug-new-edit-form.tsx

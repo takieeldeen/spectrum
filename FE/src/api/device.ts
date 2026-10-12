@@ -30,6 +30,31 @@ export const useGetDevices = () => {
   });
 };
 
+export const useGetUnassignedDevices = (plugId?: string) => {
+  return useQuery<IDevice[]>({
+    retry: false,
+    queryKey: ['devices', 'unassigned', plugId],
+    queryFn: async () => {
+      const url = plugId ? `/devices/unassigned?plugId=${plugId}` : '/devices/unassigned';
+      const response = await axiosInstance.get(url);
+      return response.data?.data || [];
+    },
+  });
+};
+
+export const useGetDevice = (id: string) => {
+  return useQuery<any>({
+    retry: false,
+    queryKey: ['devices', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await axiosInstance.get(`/devices/${id}`);
+      return response.data?.data || null;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useDeleteDevice = () => {
   const queryClient = useQueryClient();
 
@@ -40,6 +65,21 @@ export const useDeleteDevice = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+};
+
+export const useToggleDevice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, state }: { id: string; state: 'on' | 'off' }) => {
+      const response = await axiosInstance.post(`/devices/${id}/toggle`, { state });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['devices', variables.id] });
     },
   });
 };

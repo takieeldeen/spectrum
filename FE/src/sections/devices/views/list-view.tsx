@@ -6,13 +6,13 @@ import DeviceNewEditForm from '../device-new-edit-form';
 import { useGetDevices } from 'src/api/device';
 import { Iconify } from 'src/components/iconify';
 import DeviceCard from '../device-card';
-import DeviceCardSkeleton from '../device-card-skeleton';
+import { DeviceCardSkeleton } from './loading-view';
 import ErrorView from './error-view';
 
 function DevicesListView() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const { data: devices, isLoading, error } = useGetDevices();
+  const { data: devices, isLoading, error, isFetching } = useGetDevices();
   const isEmpty = devices?.length === 0 && !isLoading && !error;
   const [openForm, setOpenForm] = useState(false);
 
@@ -24,14 +24,35 @@ function DevicesListView() {
           justifyContent="space-between"
           sx={{ marginBottom: 3 }}
         >
-          <Typography variant="h3">{t('NAVBAR.DEVICES')}</Typography>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Typography variant="h3">{t('NAVBAR.DEVICES')}</Typography>
+            <Fade in={isFetching && !isLoading} unmountOnExit>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{
+                  backgroundColor: 'primary.main',
+                  color: '#fff',
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                }}
+              >
+                <CircularProgress size={12} color="inherit" />
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {t('VALIDATING')}
+                </Typography>
+              </Stack>
+            </Fade>
+          </Stack>
           <Button
             variant="contained"
             startIcon={<Iconify icon="ep:plus" />}
             color="primary"
             onClick={() => setOpenForm(true)}
           >
-            {t('NEW_DEVICE', 'اضافة جهاز جديد')}
+            {t('NEW_DEVICE')}
           </Button>
         </Stack>
 
@@ -52,16 +73,13 @@ function DevicesListView() {
               sx={{ width: 1, maxWidth: '30%' }}
             />
             <Stack spacing={1} alignItems="center">
-              <Typography variant="h5">{t('NO_DEVICES_FOUND', 'لا توجد أجهزة بعد')}</Typography>
+              <Typography variant="h5">{t('NO_DEVICES_FOUND')}</Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ textAlign: 'center', maxWidth: 400 }}
               >
-                {t(
-                  'EMPTY_DEVICES_DESCRIPTION',
-                  'لم تقم بإضافة أي أجهزة حتى الآن. يمكنك إضافة جهاز جديد للبدء في التحكم به وتتبع استهلاكه.'
-                )}
+                {t('EMPTY_DEVICES_DESCRIPTION')}
               </Typography>
             </Stack>
             <Button
@@ -71,7 +89,7 @@ function DevicesListView() {
               onClick={() => setOpenForm(true)}
               startIcon={<Iconify icon="ep:plus" />}
             >
-              {t('NEW_DEVICE', 'اضافة جهاز جديد')}
+              {t('NEW_DEVICE')}
             </Button>
           </Stack>
         </Fade>

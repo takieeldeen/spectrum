@@ -17,6 +17,8 @@ import {
   DialogActions,
   Snackbar,
   Alert,
+  Fade,
+  CircularProgress,
 } from '@mui/material';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,9 +27,10 @@ import i18n from 'src/i18n';
 import { varAlpha } from 'src/theme/styles';
 import { IDevice } from 'src/types/device';
 import { CustomPopover, usePopover } from 'src/components/custom-popover';
-import { useDeleteDevice } from 'src/api/device';
+import { useDeleteDevice, useToggleDevice } from 'src/api/device';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
+import { usePlugSocket } from 'src/hooks/use-plug-socket';
 
 type DeviceCardProps = {
   device: IDevice;
@@ -35,10 +38,14 @@ type DeviceCardProps = {
 
 function DeviceCard({ device }: DeviceCardProps) {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const plugIdStr = typeof device?.plugId === 'object' ? device.plugId._id : device?.plugId;
+  const { liveData: stripData } = usePlugSocket(plugIdStr as string);
+  const outletProps = stripData?.outlets?.[`outlet${device?.plugPort}`];
   const isDark = theme.palette.mode === 'dark';
   const popover = usePopover();
   const deleteMutation = useDeleteDevice();
+  const toggleMutation = useToggleDevice();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -69,7 +76,7 @@ function DeviceCard({ device }: DeviceCardProps) {
         await deleteMutation.mutateAsync(device._id);
         setSnackbar({
           open: true,
-          message: t('DEVICE_DELETED_SUCCESSFULLY', 'تم حذف الجهاز بنجاح'),
+          message: t('DEVICE_DELETED_SUCCESSFULLY'),
           severity: 'success',
         });
         setConfirmOpen(false);
@@ -78,7 +85,23 @@ function DeviceCard({ device }: DeviceCardProps) {
       console.error(error);
       setSnackbar({
         open: true,
-        message: error.message || t('ERROR_DELETING_DEVICE', 'حدث خطأ أثناء الحذف'),
+        message: error.message || t('ERROR_DELETING_DEVICE'),
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleToggle = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newState = event.target.checked ? 'on' : 'off';
+    try {
+      if (device?._id) {
+        await toggleMutation.mutateAsync({ id: device._id, state: newState });
+      }
+    } catch (error: any) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: error.message || t('ERROR_TOGGLING_DEVICE'),
         severity: 'error',
       });
     }
@@ -100,38 +123,44 @@ function DeviceCard({ device }: DeviceCardProps) {
               <IconButton onClick={popover.onOpen}>
                 <Iconify icon="bi:three-dots-vertical" width={24} height={24} />
               </IconButton>
-              <Switch />
-            </Stack>
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{
-                backgroundColor: varAlpha(theme.palette.success.mainChannel, 0.3),
-                px: 2,
-                borderRadius: 2,
-                py: 0.5,
-              }}
-            >
-              <Box
-                sx={{
-                  height: 8,
-                  width: 8,
-                  borderRadius: '50%',
-                  backgroundColor: isDark ? 'success.light' : 'success.dark',
-                }}
+              <Switch
+                checked={!!outletProps?.on}
+                onChange={handleToggle}
+                disabled={toggleMutation.isPending || !stripData}
               />
-              <Typography
-                variant="body1"
+            </Stack>
+            <Fade in={outletProps?.on} timeout={{ enter: 200, exit: 0 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
                 sx={{
-                  fontWeight: 700,
-                  color: isDark ? 'success.light' : 'success.dark',
-                  fontSize: 12,
+                  backgroundColor: varAlpha(theme.palette.success.mainChannel, 0.3),
+                  px: 2,
+                  borderRadius: 2,
+                  py: 0.5,
                 }}
               >
-                متصل
-              </Typography>
-            </Stack>
+                <Box
+                  sx={{
+                    height: 8,
+                    width: 8,
+                    borderRadius: '50%',
+                    backgroundColor: isDark ? 'success.light' : 'success.dark',
+                  }}
+                />
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 700,
+                    color: isDark ? 'success.light' : 'success.dark',
+                    fontSize: 12,
+                  }}
+                >
+                  متصل
+                </Typography>
+              </Stack>
+            </Fade>
           </Stack>
           <Stack direction="row" spacing={2} alignItems="center">
             <Box
@@ -148,9 +177,13 @@ function DeviceCard({ device }: DeviceCardProps) {
               <Iconify icon="carbon:plug" color="primary.main" width={48} />
             </Box>
             <Stack direction="column" spacing={0.25}>
-              <Typography variant="h5">{deviceName}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="h5">{deviceName}</Typography>
+              </Stack>
               <Typography sx={{ fontSize: 15 }} color="text.secondary">
-                مشترك البلكونة - مدخل ٢
+                {device?.plugId && typeof device.plugId === 'object'
+                  ? `${i18n.language === 'ar' ? device.plugId.arabicName || device.plugId.name : device.plugId.name} - ${t('PORT')} ${device.plugPort}`
+                  : t('UNASSIGNED')}
               </Typography>
             </Stack>
           </Stack>
@@ -168,34 +201,45 @@ function DeviceCard({ device }: DeviceCardProps) {
             spacing={1}
           >
             <Stack alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+              <Iconify icon="mdi:current-ac" width={32} color="primary.main" />
+              <Stack alignItems="center">
+                <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
+                  {outletProps?.on && outletProps?.current_A !== undefined
+                    ? outletProps.current_A
+                    : '--'}{' '}
+                  {t('AMPERE')}
+                </Typography>
+                <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
+                  {t('CURRENT')}
+                </Typography>
+              </Stack>
+            </Stack>
+            <Stack alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+              <Iconify icon="mdi:lightning-bolt-outline" width={32} color="primary.main" />
+              <Stack alignItems="center">
+                <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
+                  {outletProps?.on && stripData?.voltage !== undefined
+                    ? stripData.voltage.toFixed(0)
+                    : '--'}{' '}
+                  {t('VOLT')}
+                </Typography>
+                <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
+                  {t('VOLTAGE')}
+                </Typography>
+              </Stack>
+            </Stack>
+            <Stack alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
               <Iconify icon="bi:bar-chart" width={32} color="primary.main" />
               <Stack alignItems="center">
                 <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
-                  0.45 KWh
+                  {outletProps?.on && outletProps?.power_W !== undefined
+                    ? Math.round(outletProps.power_W)
+                    : '--'}{' '}
+                  {t('WATT')}
                 </Typography>
                 <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
-                  استهلاك اليوم
+                  {t('POWER_CONSUMPTION')}
                 </Typography>
-              </Stack>
-            </Stack>
-            <Stack alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-              <Iconify icon="boxicons:bolt" width={32} color="primary.main" />
-              <Stack alignItems="center">
-                <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
-                  120 واط
-                </Typography>
-                <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
-                  الاستهلاك الحالي
-                </Typography>
-              </Stack>
-            </Stack>
-            <Stack alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-              <Iconify icon="akar-icons:clock" width={32} color="primary.main" />
-              <Stack alignItems="center">
-                <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
-                  3 ساعات
-                </Typography>
-                <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>وقت التشغيل</Typography>
               </Stack>
             </Stack>
           </Stack>
@@ -243,17 +287,13 @@ function DeviceCard({ device }: DeviceCardProps) {
       </CustomPopover>
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>{t('CONFIRM_DELETE_TITLE', 'تأكيد الحذف')}</DialogTitle>
+        <DialogTitle>{t('CONFIRM_DELETE_TITLE')}</DialogTitle>
         <DialogContent>
-          <Typography>
-            {t('CONFIRM_DELETE_MESSAGE', 'هل أنت متأكد أنك تريد حذف الجهاز "{{name}}"؟', {
-              name: deviceName,
-            })}
-          </Typography>
+          <Typography>{t('CONFIRM_DELETE_MESSAGE', { name: deviceName })}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)} color="inherit">
-            {t('CANCEL', 'إلغاء')}
+            {t('CANCEL')}
           </Button>
           <Button
             onClick={handleConfirmDelete}
@@ -261,7 +301,7 @@ function DeviceCard({ device }: DeviceCardProps) {
             variant="contained"
             disabled={deleteMutation.isPending}
           >
-            {t('DELETE', 'حذف')}
+            {t('DELETE')}
           </Button>
         </DialogActions>
       </Dialog>
