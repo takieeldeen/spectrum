@@ -19,7 +19,6 @@ export function usePlugSocket(plugId: string) {
     // 1. Connect to the WebSocket Server
     const socketInstance = io(SOCKET_URL, {
       transports: ['websocket'],
-      upgrade: false,
     });
 
     socketInstance.on('connect', () => {
