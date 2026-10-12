@@ -12,4 +12,7 @@ router.get('/', plugController.getAllPlugs);
 // GET /plugs/:plugId
 router.get('/:plugId', plugController.getPlugById);
 
+// PUT /plugs/:id
+router.put('/:id', plugController.updatePlug);
+
 export default router;

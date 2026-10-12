@@ -18,6 +18,12 @@ export function initializeSocket(httpServer: HttpServer) {
     io.to(`plug_${payload.plugId}`).emit('live_data', payload);
   });
 
+  hardwareService.on('guard_triggered', (payload) => {
+    console.log('📢 Broadcasting guard_triggered event to clients:', payload);
+    io.to(`plug_${payload.plugId}`).emit('guard_triggered', payload);
+    io.emit('guard_triggered', payload);
+  });
+
   // 2. Handle Frontend connections
   io.on('connection', (socket) => {
     console.log(`Frontend client connected: ${socket.id}`);

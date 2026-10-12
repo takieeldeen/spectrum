@@ -7,8 +7,4 @@ export interface IPlug extends Document {
   serialNumber: string;
   ipAddress: string;
   roomId?: string;
-  device1?: string;
-  device2?: string;
-  device3?: string;
-  device4?: string;
 }

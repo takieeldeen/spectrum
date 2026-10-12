@@ -1,5 +1,5 @@
-import mongoose, { Schema } from 'mongoose';
-import { IPlug } from '../types/plug.type';
+import mongoose, { Schema } from "mongoose";
+import { IPlug } from "../types/plug.type";
 
 const PlugSchema: Schema<IPlug> = new Schema(
   {
@@ -8,14 +8,10 @@ const PlugSchema: Schema<IPlug> = new Schema(
     serialNumber: { type: String, required: true },
     ipAddress: { type: String, required: true },
     roomId: { type: String, required: false },
-    device1: { type: String, required: false },
-    device2: { type: String, required: false },
-    device3: { type: String, required: false },
-    device4: { type: String, required: false },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-export default mongoose.model<IPlug>('Plug', PlugSchema);
+export default mongoose.model<IPlug>("Plug", PlugSchema);

@@ -5,6 +5,9 @@ const DeviceSchema: Schema<IDevice> = new Schema(
   {
     nameEn: { type: String, required: true },
     nameAr: { type: String, required: false },
+    plugId: { type: Schema.Types.ObjectId, ref: 'Plug', required: false },
+    plugPort: { type: Number, required: false },
+    lastTurnedOn: { type: Date, required: false },
   },
   {
     timestamps: true,

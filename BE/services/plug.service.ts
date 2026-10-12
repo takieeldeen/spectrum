@@ -1,6 +1,8 @@
 import PlugModel from '../models/plug.model';
 import { IPlug } from '../types/plug.type';
 
+import DeviceModel from '../models/device.model';
+
 export class PlugService {
   /**
    * Creates a new Plug entity in the database
@@ -9,6 +11,40 @@ export class PlugService {
    */
   async createPlug(data: Partial<IPlug>): Promise<IPlug> {
     return await PlugModel.create(data);
+  }
+
+  /**
+   * Updates an existing Plug entity
+   * @param id The ID of the plug
+   * @param data The updated data
+   * @returns The updated plug entity
+   */
+  async updatePlug(id: string, data: Partial<IPlug>): Promise<IPlug | null> {
+    return await PlugModel.findByIdAndUpdate(id, data, { new: true });
+  }
+
+  /**
+   * Unassigns all devices currently assigned to a plug
+   */
+  async unassignAllDevicesForPlug(plugId: string): Promise<void> {
+    await DeviceModel.updateMany(
+      { plugId },
+      { $set: { plugId: null, plugPort: null } }
+    );
+  }
+
+  /**
+   * Assigns devices to a plug
+   */
+  async assignDevicesToPlug(plugId: string, devices: Record<number, string | null | undefined>): Promise<void> {
+    for (const [portStr, deviceId] of Object.entries(devices)) {
+      if (deviceId) {
+        await DeviceModel.findByIdAndUpdate(deviceId, {
+          plugId: plugId,
+          plugPort: parseInt(portStr, 10),
+        });
+      }
+    }
   }
 
   /**
