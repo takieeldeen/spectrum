@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import morgan from 'morgan';
 import { createServer } from 'http';
 import { initializeSocket } from './services/socket.service';
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Initialize WebSocket server
 initializeSocket(httpServer);
