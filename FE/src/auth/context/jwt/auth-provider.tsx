@@ -3,22 +3,14 @@
 import { useMemo, useEffect, useCallback } from 'react';
 
 import { useSetState } from 'src/hooks/use-set-state';
-
 import axios, { endpoints } from 'src/utils/axios';
 
-import { STORAGE_KEY } from './constant';
 import { AuthContext } from '../auth-context';
-import { setSession, isValidToken } from './utils';
+import { setSession, isValidToken, getStorageToken } from './utils';
 
 import type { AuthState } from '../../types';
 
 // ----------------------------------------------------------------------
-
-/**
- * NOTE:
- * We only build demo at basic level.
- * Customer will need to do some extra handling yourself if you want to extend the logic and other features...
- */
 
 type Props = {
   children: React.ReactNode;
@@ -32,20 +24,34 @@ export function AuthProvider({ children }: Props) {
 
   const checkUserSession = useCallback(async () => {
     try {
-      const accessToken = sessionStorage.getItem(STORAGE_KEY);
+      const accessToken = getStorageToken();
 
       if (accessToken && isValidToken(accessToken)) {
-        setSession(accessToken);
+        await setSession(accessToken);
 
-        // Dummy user response instead of axios.get
-        const user = { id: '1', displayName: 'Dummy User', role: 'admin' };
+        // Fetch live user profile from the backend /me endpoint
+        const res = await axios.get(endpoints.auth.me);
+        const userData = res.data?.data || res.data;
 
-        setState({ user: { ...user, accessToken }, loading: false });
+        const user = {
+          ...userData,
+          id: userData?._id || userData?.id,
+          displayName:
+            userData?.name || userData?.displayName || userData?.email?.split('@')[0] || 'User',
+          photoURL: userData?.imageUrl || userData?.photoURL || null,
+          role: userData?.role ?? 'admin',
+          status: userData?.status ?? 'ACTIVE',
+          accessToken,
+        };
+
+        setState({ user, loading: false });
       } else {
+        await setSession(null);
         setState({ user: null, loading: false });
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching user session from /me:', error);
+      await setSession(null);
       setState({ user: null, loading: false });
     }
   }, [setState]);

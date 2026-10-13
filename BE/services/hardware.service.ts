@@ -164,7 +164,6 @@ class HardwareService extends EventEmitter {
               rawParts: parts,
             };
           }
-
           this.emit("hardware_data", {
             plugId: foundPlugId,
             outlets,
@@ -198,12 +197,14 @@ class HardwareService extends EventEmitter {
           );
 
           if (isOn) {
-            import("../models/device.model").then(({ default: DeviceModel }) => {
-              DeviceModel.findOneAndUpdate(
-                { plugId: foundPlugId, plugPort: ch },
-                { lastTurnedOn: new Date() }
-              ).exec();
-            });
+            import("../models/device.model").then(
+              ({ default: DeviceModel }) => {
+                DeviceModel.findOneAndUpdate(
+                  { plugId: foundPlugId, plugPort: ch },
+                  { lastTurnedOn: new Date() },
+                ).exec();
+              },
+            );
           }
 
           // Re-fetch everything to update the UI correctly

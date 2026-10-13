@@ -9,11 +9,13 @@ import ConsumptionTrack from '../electricity-consumption';
 import Grid from '@mui/material/Unstable_Grid2';
 import SummaryWidget from 'src/components/summary-widget/summary-widget';
 import { Chart, useChart } from 'src/components/chart';
+import { useAuthContext } from 'src/auth/hooks';
 
 function DashboardMainView() {
   const { t } = useTranslation();
   const theme = useTheme();
-
+  const { user } = useAuthContext();
+  console.log(user);
   const deviceChartSeries = [12, 3];
   const deviceChartOptions = useChart({
     labels: [t('DASHBOARD.ONLINE'), t('DASHBOARD.OFFLINE')],

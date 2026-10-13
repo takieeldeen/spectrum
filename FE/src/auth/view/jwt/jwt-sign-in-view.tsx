@@ -13,7 +13,7 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
+import { useRouter, useSearchParams } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { useBoolean } from 'src/hooks/use-boolean';
@@ -24,7 +24,7 @@ import { Form, Field } from 'src/components/hook-form';
 import { useAuthContext } from '../../hooks';
 import { FormHead } from '../../components/form-head';
 import { signInWithPassword } from '../../context/jwt';
-import { Stack, useTheme } from '@mui/material';
+import { Stack, TextField, useTheme } from '@mui/material';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 
@@ -50,6 +50,7 @@ export function useSignInSchema() {
 
 export function JwtSignInView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const theme = useTheme();
   const { t } = useTranslation();
   const { checkUserSession } = useAuthContext();
@@ -60,8 +61,8 @@ export function JwtSignInView() {
   const password = useBoolean();
 
   const defaultValues = {
-    email: 'demo@minimals.cc',
-    password: '@demo1',
+    email: '',
+    password: '',
   };
 
   const methods = useForm<SignInSchemaType>({
@@ -74,12 +75,14 @@ export function JwtSignInView() {
     formState: { isSubmitting },
   } = methods;
 
+  const returnTo = searchParams.get('returnTo') || paths.dashboard.root;
+
   const onSubmit = handleSubmit(async (data) => {
     try {
       await signInWithPassword({ email: data.email, password: data.password });
       await checkUserSession?.();
 
-      router.refresh();
+      router.push(returnTo);
     } catch (error) {
       console.error(error);
       setErrorMsg(typeof error === 'string' ? error : error.message);
@@ -88,7 +91,11 @@ export function JwtSignInView() {
 
   const renderForm = (
     <Box gap={3} display="flex" flexDirection="column">
-      <Field.Text name="email" label={t('LOGIN_PAGE.EMAIL_ADDRESS')} InputLabelProps={{ shrink: true }} />
+      <Field.Text
+        name="email"
+        label={t('LOGIN_PAGE.EMAIL_ADDRESS')}
+        InputLabelProps={{ shrink: true }}
+      />
 
       <Box gap={1.5} display="flex" flexDirection="column">
         <Link
@@ -101,6 +108,18 @@ export function JwtSignInView() {
           {t('LOGIN_PAGE.FORGOT_PASSWORD')}
         </Link>
 
+        {/* <TextField
+          variant="filled"
+          placeholder={t('LOGIN_PAGE.EMAIL_ADDRESS')}
+          label={t('LOGIN_PAGE.EMAIL_ADDRESS')}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Iconify icon="bitcoin-icons:email-filled" width={24} />
+              </InputAdornment>
+            ),
+          }}
+        /> */}
         <Field.Text
           name="password"
           label={t('LOGIN_PAGE.PASSWORD')}

@@ -1,12 +1,10 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import { initializeSocket } from './services/socket.service';
-
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
