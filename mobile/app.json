@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.spectrum.mobile",
       "icon": "./assets/expo.icon",
@@ -27,8 +27,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET"
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -49,7 +52,9 @@
         {
           "fineLocationPermission": true
         }
-      ]
+      ],
+      "expo-status-bar",
+      "@react-native-vector-icons/lucide"
     ],
     "experiments": {
       "typedRoutes": true,

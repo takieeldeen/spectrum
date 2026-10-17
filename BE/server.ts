@@ -8,7 +8,7 @@ import { initializeSocket } from './services/socket.service';
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 
 app.use(cors());
 app.use(express.json());

@@ -14,18 +14,30 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function AppTabs() {
+  const { t } = useTranslation();
+
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Home</TabButton>
+            <TabButton>{t("NAVBAR.HOME")}</TabButton>
+          </TabTrigger>
+          <TabTrigger name="plugs" href="/plugs" asChild>
+            <TabButton>{t("NAVBAR.PLUGS")}</TabButton>
+          </TabTrigger>
+          <TabTrigger name="devices" href="/devices" asChild>
+            <TabButton>{t("NAVBAR.DEVICES")}</TabButton>
           </TabTrigger>
           <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>Explore</TabButton>
+            <TabButton>{t("NAVBAR.EXPLORE")}</TabButton>
+          </TabTrigger>
+          <TabTrigger name="profile" href="/profile" asChild>
+            <TabButton>{t("NAVBAR.PROFILE")}</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -36,13 +48,17 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+      <View
+        style={[
+          styles.tabButtonView,
+          isFocused ? styles.tabButtonFocused : styles.tabButtonUnfocused,
+        ]}>
+        <ThemedText
+          type="small"
+          style={isFocused ? styles.focusedText : styles.unfocusedText}>
           {children}
         </ThemedText>
-      </ThemedView>
+      </View>
     </Pressable>
   );
 }
@@ -104,6 +120,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
+    borderWidth: 1.5,
+  },
+  tabButtonFocused: {
+    borderColor: '#059669',
+    backgroundColor: 'transparent',
+  },
+  tabButtonUnfocused: {
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+  },
+  focusedText: {
+    color: '#059669',
+    fontWeight: '600',
+  },
+  unfocusedText: {
+    color: '#60646C',
   },
   externalPressable: {
     flexDirection: 'row',

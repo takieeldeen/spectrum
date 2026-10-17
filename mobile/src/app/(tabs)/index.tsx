@@ -1,0 +1,250 @@
+import * as Device from "expo-device";
+import { View, Pressable, Platform, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
+import { Lucide } from "@react-native-vector-icons/lucide";
+
+import { AnimatedIcon } from "@/components/animated-icon";
+import { HintRow } from "@/components/hint-row";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { WebBadge } from "@/components/web-badge";
+import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { useAuth } from "@/context/auth-context";
+import { useTheme } from "@/hooks/use-theme";
+import { Button } from "@/components/ui";
+
+function getDevMenuHint() {
+  if (Platform.OS === "web") {
+    return <ThemedText type="small">use browser devtools</ThemedText>;
+  }
+  if (Device.isDevice) {
+    return (
+      <ThemedText type="small">
+        shake device or press <ThemedText type="code">m</ThemedText> in terminal
+      </ThemedText>
+    );
+  }
+  const shortcut = Platform.OS === "android" ? "cmd+m (or ctrl+m)" : "cmd+d";
+  return (
+    <ThemedText type="small">
+      press <ThemedText type="code">{shortcut}</ThemedText>
+    </ThemedText>
+  );
+}
+
+export default function HomeScreen() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const theme = useTheme();
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language === "ar";
+
+  const toggleLanguage = () => {
+    const nextLang = isArabic ? "en" : "ar";
+    i18n.changeLanguage(nextLang);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
+
+  return (
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Top Header Row with Language Switcher */}
+        <View
+          style={[
+            styles.topBar,
+            {
+              justifyContent: isArabic ? "flex-start" : "flex-end",
+              flexDirection: isArabic ? "row-reverse" : "row",
+            },
+          ]}
+        >
+          <Pressable
+            onPress={toggleLanguage}
+            style={({ pressed }) => [
+              styles.languageButton,
+              {
+                backgroundColor: theme.backgroundElement,
+                borderColor: theme.backgroundSelected,
+                flexDirection: isArabic ? "row-reverse" : "row",
+              },
+              pressed && { opacity: 0.75 },
+            ]}
+          >
+            <Lucide name="languages" size={18} color={theme.primary} />
+            <ThemedText type="smallBold" style={styles.languageText}>
+              {isArabic ? "العربية" : "English"}
+            </ThemedText>
+            <View
+              style={[styles.langBadge, { backgroundColor: theme.primary }]}
+            >
+              <ThemedText style={styles.langBadgeText}>
+                {isArabic ? "EN" : "عربي"}
+              </ThemedText>
+            </View>
+          </Pressable>
+        </View>
+
+        <ThemedView style={styles.heroSection}>
+          <AnimatedIcon />
+          <ThemedText type="title" style={styles.title}>
+            {user?.name
+              ? isArabic
+                ? `مرحباً، ${user.name}`
+                : `Welcome, ${user.name}`
+              : isArabic
+                ? "مرحباً بك في سبيكتروم"
+                : "Welcome to Spectrum"}
+          </ThemedText>
+          {user?.email && (
+            <ThemedText type="small" style={{ opacity: 0.7 }}>
+              {user.email}
+            </ThemedText>
+          )}
+        </ThemedView>
+
+        <ThemedText type="code" style={styles.code}>
+          {isArabic ? "البداية" : "get started"}
+        </ThemedText>
+
+        <ThemedView type="backgroundElement" style={styles.stepContainer}>
+          <HintRow
+            title={isArabic ? "اللغة" : "Language"}
+            hint={
+              <Pressable
+                onPress={toggleLanguage}
+                style={({ pressed }) => [
+                  styles.hintLangBtn,
+                  { backgroundColor: theme.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <ThemedText style={styles.hintLangBtnText}>
+                  {isArabic ? "Switch to English" : "التبديل إلى العربية"}
+                </ThemedText>
+              </Pressable>
+            }
+          />
+          <HintRow
+            title={isArabic ? "جرّب التعديل" : "Try editing"}
+            hint={<ThemedText type="code">src/app/(tabs)/index.tsx</ThemedText>}
+          />
+          <HintRow
+            title={isArabic ? "أدوات المطور" : "Dev tools"}
+            hint={getDevMenuHint()}
+          />
+          <HintRow
+            title={isArabic ? "بداية جديدة" : "Fresh start"}
+            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
+          />
+          <Button
+            onPress={() => router.push("/(tabs)/plugs/activate/124124124")}
+          >
+            Go to the new Page
+          </Button>
+          <Pressable
+            onPress={handleLogout}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <ThemedText type="smallBold" style={{ color: "#EF4444" }}>
+              {isArabic ? "تسجيل الخروج" : "Sign Out"}
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+
+        {Platform.OS === "web" && <WebBadge />}
+      </SafeAreaView>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  safeArea: {
+    flex: 1,
+    paddingHorizontal: Spacing.four,
+    alignItems: "center",
+    gap: Spacing.three,
+    paddingBottom: BottomTabInset + Spacing.three,
+    maxWidth: MaxContentWidth,
+  },
+  topBar: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: Spacing.two,
+  },
+  languageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+  },
+  languageText: {
+    fontSize: 14,
+  },
+  langBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  langBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  heroSection: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.four,
+  },
+  title: {
+    textAlign: "center",
+  },
+  code: {
+    textTransform: "uppercase",
+  },
+  stepContainer: {
+    gap: Spacing.three,
+    alignSelf: "stretch",
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.four,
+    borderRadius: Spacing.four,
+  },
+  hintLangBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  hintLangBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    paddingVertical: Spacing.two,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(0,0,0,0.08)",
+    paddingTop: Spacing.three,
+  },
+});

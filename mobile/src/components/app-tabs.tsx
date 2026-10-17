@@ -1,32 +1,119 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
-
-import { Colors } from '@/constants/theme';
+import { useTranslation } from "react-i18next";
+import { useTheme } from "@/hooks/use-theme";
+import { Tabs } from "expo-router";
+import { Pressable, I18nManager } from "react-native";
+import { Lucide } from "@react-native-vector-icons/lucide";
+import { getAppFont } from "@/constants/fonts";
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const theme = useTheme();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith("ar") ?? false;
+
+  // If native I18nManager.isRTL has not taken effect in this session,
+  // manually reverse tab order so reading flow is Right-to-Left (Profile on right, Plugs on left)
+  const shouldReverseOrder = !I18nManager.isRTL && isArabic;
+
+  const tabScreens = [
+    <Tabs.Screen
+      key="profile"
+      name="profile"
+      options={{
+        title: t("NAVBAR.PROFILE"),
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarActiveTintColor: theme.primary,
+        tabBarIcon: ({ color, size }) => (
+          <Lucide name="user" color={color} size={size} />
+        ),
+      }}
+    />,
+    <Tabs.Screen
+      key="notifications"
+      name="notifications"
+      options={{
+        title: "Notifications",
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarActiveTintColor: theme.primary,
+        tabBarIcon: ({ color, size }) => (
+          <Lucide name="bell" color={color} size={size} />
+        ),
+      }}
+    />,
+    <Tabs.Screen
+      key="index"
+      name="index"
+      options={{
+        title: t("NAVBAR.HOME"),
+        headerShown: false,
+        tabBarActiveTintColor: "white",
+        tabBarIcon: () => <Lucide name="house" color="white" size={24} />,
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarIconStyle: {
+          backgroundColor: theme.primary,
+          aspectRatio: 1,
+          height: 48,
+          borderRadius: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        tabBarLabel: () => null,
+        tabBarLabelStyle: { color: theme.background },
+      }}
+    />,
+    <Tabs.Screen
+      key="plugs"
+      name="plugs"
+      options={{
+        headerShown: false,
+        title: t("NAVBAR.PLUGS"),
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarActiveTintColor: theme.primary,
+        tabBarIcon: ({ color, size }) => (
+          <Lucide name="plug" color={color} size={size} />
+        ),
+      }}
+    />,
+    <Tabs.Screen
+      key="devices"
+      name="devices"
+      options={{
+        headerShown: false,
+        title: t("NAVBAR.DEVICES"),
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarActiveTintColor: theme.primary,
+        tabBarIcon: ({ color, size }) => (
+          <Lucide name="server" color={color} size={size} />
+        ),
+      }}
+    />,
+  ];
 
   return (
-    <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
+    <Tabs
+      screenOptions={{
+        tabBarStyle: {
+          backgroundColor: theme.background,
+        },
+        tabBarLabelStyle: {
+          ...getAppFont("600", i18n.language),
+        },
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+        headerPressColor: theme.primary,
+        tabBarButton: ({ ref, ...rest }) => (
+          <Pressable
+            {...rest}
+            ref={ref as any}
+            android_ripple={{
+              color: `${theme.primary}33`,
+              borderless: true,
+            }}
+          />
+        ),
+      }}
+    >
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      {shouldReverseOrder ? [...tabScreens].reverse() : tabScreens}
+    </Tabs>
   );
 }

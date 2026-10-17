@@ -243,6 +243,7 @@ class HardwareService extends EventEmitter {
       socket.write("up:getinfo:all\r\n");
       socket.write("up:power_report:1:vol\r\n");
     }
+    console.log(this.activeConnections);
   }
 
   /**

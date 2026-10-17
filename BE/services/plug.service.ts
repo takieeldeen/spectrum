@@ -14,13 +14,18 @@ export class PlugService {
   }
 
   /**
-   * Updates an existing Plug entity
+   * Updates an existing Plug entity belonging to the user
    * @param id The ID of the plug
    * @param data The updated data
+   * @param userId Optional user ID to ensure ownership
    * @returns The updated plug entity
    */
-  async updatePlug(id: string, data: Partial<IPlug>): Promise<IPlug | null> {
-    return await PlugModel.findByIdAndUpdate(id, data, { new: true });
+  async updatePlug(id: string, data: Partial<IPlug>, userId?: string): Promise<IPlug | null> {
+    const filter: Record<string, any> = { _id: id };
+    if (userId) {
+      filter.user = userId;
+    }
+    return await PlugModel.findOneAndUpdate(filter, data, { new: true });
   }
 
   /**
@@ -48,20 +53,30 @@ export class PlugService {
   }
 
   /**
-   * Retrieves all Plug entities from the database
+   * Retrieves all Plug entities for a given user from the database
+   * @param userId Optional user ID to filter plugs
    * @returns Array of plug entities
    */
-  async getAllPlugs(): Promise<IPlug[]> {
-    return await PlugModel.find({});
+  async getAllPlugs(userId?: string): Promise<IPlug[]> {
+    const filter: Record<string, any> = {};
+    if (userId) {
+      filter.user = userId;
+    }
+    return await PlugModel.find(filter);
   }
 
   /**
-   * Retrieves a single Plug entity by ID
+   * Retrieves a single Plug entity by ID and optional user ID
    * @param id The ID of the plug
+   * @param userId Optional user ID to ensure ownership
    * @returns The plug entity or null if not found
    */
-  async getPlugById(id: string): Promise<IPlug | null> {
-    return await PlugModel.findById(id);
+  async getPlugById(id: string, userId?: string): Promise<IPlug | null> {
+    const filter: Record<string, any> = { _id: id };
+    if (userId) {
+      filter.user = userId;
+    }
+    return await PlugModel.findOne(filter);
   }
 }
 
