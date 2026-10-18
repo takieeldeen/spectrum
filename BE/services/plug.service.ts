@@ -29,6 +29,19 @@ export class PlugService {
   }
 
   /**
+   * Deletes a plug entity and unassigns all associated devices
+   */
+  async deletePlug(id: string, userId?: string): Promise<boolean> {
+    const filter: Record<string, any> = { _id: id };
+    if (userId) {
+      filter.user = userId;
+    }
+    await this.unassignAllDevicesForPlug(id);
+    const result = await PlugModel.findOneAndDelete(filter);
+    return Boolean(result);
+  }
+
+  /**
    * Unassigns all devices currently assigned to a plug
    */
   async unassignAllDevicesForPlug(plugId: string): Promise<void> {

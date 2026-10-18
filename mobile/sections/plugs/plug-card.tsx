@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Switch } from "react-native";
+import { StyleSheet, View, Switch, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { Lucide } from "@react-native-vector-icons/lucide";
 import Animated, {
   useSharedValue,
@@ -16,9 +17,13 @@ import {
   PlugSocket,
   OutletProps,
 } from "@/components/electric-plug";
-import { Card, Button } from "@/components/ui";
+import { Card, Button, Popover, usePopover } from "@/components/ui";
+import {
+  ConfirmationMessage,
+  useConfirmationMessage,
+} from "@/components/confirmation-message";
 import { usePairWithStrip } from "@/hooks/use-pair-with-strip";
-import { useTogglePlugOutlet } from "@/api/plug";
+import { useTogglePlugOutlet, useDeletePlug } from "@/api/plug";
 
 /* ==========================================================================
    1. TYPES & PROPS
@@ -56,6 +61,8 @@ export interface PlugCardProps {
     state: boolean,
   ) => void;
   onToggleMaster?: (state: boolean) => void;
+  onEdit?: (plug: IPlug) => void;
+  onDelete?: (plug: IPlug) => void;
 }
 
 const DEFAULT_OUTLETS: Record<
@@ -94,16 +101,65 @@ export function PlugCard({
   plug,
   onToggleOutlet,
   onToggleMaster,
+  onEdit,
+  onDelete,
 }: PlugCardProps) {
+  const router = useRouter();
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
   const isDark = theme.background === "#000000";
 
+  const popover = usePopover();
+  const { showConfirmation, confirmationProps } = useConfirmationMessage();
+  const deleteMutation = useDeletePlug();
+
   // Plug info
   const plugName = isArabic
     ? plug?.arabicName || plug?.nameAr || plug?.name || "مشترك الصالة"
     : plug?.name || plug?.nameEn || plug?.arabicName || "Power Strip";
+
+  const plugId = plug?._id || plug?.id;
+
+  const handleEdit = () => {
+    popover.onClose();
+    if (onEdit && plug) {
+      onEdit(plug);
+      return;
+    }
+    if (plugId) {
+      router.push({
+        pathname: "/(tabs)/plugs/plug-create-edit-page",
+        params: { plugId },
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    popover.onClose();
+    showConfirmation({
+      variant: "Warning",
+      title: isArabic ? "حذف المشترك" : "Delete Plug",
+      subtitle: isArabic
+        ? `هل أنت متأكد من رغبتك في حذف المشترك "${plugName}"؟ لا يمكن التراجع عن هذا الإجراء.`
+        : `Are you sure you want to delete "${plugName}"? This action cannot be undone.`,
+      confirmText: isArabic ? "حذف" : "Delete",
+      cancelText: isArabic ? "إلغاء" : "Cancel",
+      onConfirm: async () => {
+        if (onDelete && plug) {
+          onDelete(plug);
+          return;
+        }
+        if (plugId) {
+          try {
+            await deleteMutation.mutateAsync(plugId);
+          } catch (err) {
+            console.error("Failed to delete plug:", err);
+          }
+        }
+      },
+    });
+  };
 
   // Hook: Pair with strip over local Wi-Fi / TCP (port 10086)
   const {
@@ -120,7 +176,6 @@ export function PlugCard({
   });
 
   const toggleMutation = useTogglePlugOutlet();
-  const plugId = plug?._id || plug?.id;
 
   const isConnected =
     isStripSocketConnected ||
@@ -294,60 +349,80 @@ export function PlugCard({
   });
 
   return (
-    <Card
-      style={[
-        styles.cardContainer,
-        {
-          backgroundColor: isDark ? theme.backgroundElement : "white",
-          borderColor: isDark ? theme.backgroundSelected : "rgba(0,0,0,0.06)",
-        },
-      ]}
-    >
-      {/* 1. Header: Name + Connected Badge */}
-      <View style={styles.cardHeader}>
-        <View style={{ flex: 1 }}>
-          <ThemedText style={styles.plugNameText}>{plugName}</ThemedText>
-          {isStripSocketConnected && liveTelemetry.voltage > 0 && (
-            <ThemedText
-              style={{
-                fontSize: 12,
-                color: theme.primary,
-                fontWeight: "600",
-                marginTop: 2,
-              }}
-            >
-              {liveTelemetry.voltage}V • {liveTelemetry.watts}W •{" "}
-              {liveTelemetry.temperature}°C
-            </ThemedText>
-          )}
-        </View>
+    <>
+      <Card
+        style={[
+          styles.cardContainer,
+          {
+            backgroundColor: isDark ? theme.backgroundElement : "white",
+            borderColor: isDark ? theme.backgroundSelected : "rgba(0,0,0,0.06)",
+          },
+        ]}
+      >
+        {/* 1. Header: Name + Connected Badge & Popover Menu Button */}
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.plugNameText}>{plugName}</ThemedText>
+            {isStripSocketConnected && liveTelemetry.voltage > 0 && (
+              <ThemedText
+                style={{
+                  fontSize: 12,
+                  color: theme.primary,
+                  fontWeight: "600",
+                  marginTop: 2,
+                }}
+              >
+                {liveTelemetry.voltage}V • {liveTelemetry.watts}W •{" "}
+                {liveTelemetry.temperature}°C
+              </ThemedText>
+            )}
+          </View>
 
-        <View
-          style={[
-            styles.connectedBadge,
-            isConnected ? styles.badgeOnline : styles.badgeOffline,
-          ]}
-        >
-          <View
-            style={[
-              styles.connectedDot,
-              isConnected ? styles.dotOnline : styles.dotOffline,
-            ]}
-          />
-          <ThemedText
-            style={[
-              styles.connectedText,
-              isConnected ? styles.textOnline : styles.textOffline,
-            ]}
-          >
-            {isStripSocketConnected
-              ? "LAN متصل"
-              : isConnected
-                ? t("DASHBOARD.ONLINE")
-                : t("DASHBOARD.OFFLINE")}
-          </ThemedText>
+          <View style={styles.headerRight}>
+            <View
+              style={[
+                styles.connectedBadge,
+                isConnected ? styles.badgeOnline : styles.badgeOffline,
+              ]}
+            >
+              <View
+                style={[
+                  styles.connectedDot,
+                  isConnected ? styles.dotOnline : styles.dotOffline,
+                ]}
+              />
+              <ThemedText
+                style={[
+                  styles.connectedText,
+                  isConnected ? styles.textOnline : styles.textOffline,
+                ]}
+              >
+                {isStripSocketConnected
+                  ? "LAN متصل"
+                  : isConnected
+                    ? t("DASHBOARD.ONLINE")
+                    : t("DASHBOARD.OFFLINE")}
+              </ThemedText>
+            </View>
+
+            <Pressable
+              ref={popover.anchorRef}
+              collapsable={false}
+              onPress={popover.onOpen}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.menuButton,
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Lucide
+                name="ellipsis-vertical"
+                size={18}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+          </View>
         </View>
-      </View>
 
       {/* 2. Electric Power Strip Visual */}
       <ElectricPlug
@@ -591,7 +666,28 @@ export function PlugCard({
             ? "عرض المزيد"
             : "Show more"}
       </Button>
-    </Card>
+      </Card>
+
+      {/* Popover Action Menu */}
+      <Popover {...popover} placement="bottom-end">
+        <Popover.Item
+          icon={<Lucide name="pencil" size={18} color={theme.text} />}
+          onPress={handleEdit}
+        >
+          {isArabic ? "تعديل" : "Edit"}
+        </Popover.Item>
+        <Popover.Item
+          destructive
+          icon={<Lucide name="trash-2" size={18} color="#EF4444" />}
+          onPress={handleDelete}
+        >
+          {isArabic ? "حذف" : "Delete"}
+        </Popover.Item>
+      </Popover>
+
+      {/* Localized Delete Confirmation Dialog */}
+      <ConfirmationMessage {...confirmationProps} />
+    </>
   );
 }
 
@@ -610,6 +706,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  menuButton: {
+    padding: 6,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   plugNameText: {
     fontSize: 22,

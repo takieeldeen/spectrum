@@ -20,4 +20,7 @@ router.put("/:id", plugController.updatePlug);
 // POST /plugs/:id/toggle
 router.post("/:id/toggle", plugController.toggleOutlet);
 
+// DELETE /plugs/:id
+router.delete("/:id", plugController.deletePlug);
+
 export default router;

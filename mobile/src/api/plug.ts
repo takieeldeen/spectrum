@@ -221,3 +221,43 @@ export const useTogglePlugOutlet = () => {
     },
   });
 };
+
+/**
+ * Deletes a plug by ID
+ */
+export async function deletePlug(
+  id: string,
+  token?: string | null
+): Promise<{ success: boolean; message: string }> {
+  const authToken = token ?? (await getAuthSession())?.token;
+
+  const response = await fetch(`${API_BASE_URL}/plugs/${id}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Failed to delete plug.");
+  }
+
+  return data;
+}
+
+/**
+ * TanStack Query mutation hook to delete a plug
+ */
+export const useDeletePlug = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ success: boolean; message: string }, Error, string>({
+    mutationFn: (id) => deletePlug(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plugs"] });
+    },
+  });
+};

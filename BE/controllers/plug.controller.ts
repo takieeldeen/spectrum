@@ -195,6 +195,41 @@ export class PlugController {
       });
     }
   };
+
+  /**
+   * Handles the request to delete a plug
+   */
+  deletePlug = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?._id?.toString() || req.userId;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const { id } = req.params;
+      const deleted = await plugService.deletePlug(id, userId);
+
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: "Plug not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Plug deleted successfully",
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "An error occurred while deleting the plug.",
+      });
+    }
+  };
 }
 
 export default new PlugController();
