@@ -98,10 +98,29 @@ export class PlugController {
       }
 
       const plugs = await plugService.getAllPlugs(userId);
+      const hardwareService = (await import("../services/hardware.service")).default;
+
+      const enrichedPlugs = plugs.map((plug) => {
+        const pObj = (plug as any).toObject ? (plug as any).toObject() : { ...plug };
+        const cleanSerial = pObj.serialNumber ? hardwareService.normalizeSerial(pObj.serialNumber) : "";
+        const isConnected = cleanSerial
+          ? hardwareService.isSerialConnected(cleanSerial)
+          : hardwareService.isPlugConnected(pObj._id?.toString());
+        const stripIp = cleanSerial
+          ? hardwareService.getStripIpBySerial(cleanSerial)
+          : hardwareService.getStripIpByPlugId(pObj._id?.toString());
+
+        return {
+          ...pObj,
+          connected: isConnected,
+          isOnline: isConnected,
+          ipAddress: stripIp || undefined,
+        };
+      });
 
       return res.status(200).json({
         success: true,
-        data: plugs,
+        data: enrichedPlugs,
       });
     } catch (error: any) {
       return res.status(500).json({
@@ -134,9 +153,25 @@ export class PlugController {
         });
       }
 
+      const hardwareService = (await import("../services/hardware.service")).default;
+      const cleanSerial = plug.serialNumber ? hardwareService.normalizeSerial(plug.serialNumber) : "";
+      const isConnected = cleanSerial
+        ? hardwareService.isSerialConnected(cleanSerial)
+        : hardwareService.isPlugConnected(plugId);
+      const stripIp = cleanSerial
+        ? hardwareService.getStripIpBySerial(cleanSerial)
+        : hardwareService.getStripIpByPlugId(plugId);
+
+      const plugObj = (plug as any).toObject ? (plug as any).toObject() : { ...plug };
+
       return res.status(200).json({
         success: true,
-        data: plug,
+        data: {
+          ...plugObj,
+          connected: isConnected,
+          isOnline: isConnected,
+          ipAddress: stripIp || undefined,
+        },
       });
     } catch (error: any) {
       return res.status(500).json({

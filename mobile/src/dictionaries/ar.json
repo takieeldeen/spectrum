@@ -249,5 +249,24 @@
   },
   "PLUG_ACTIVATION": {
     "PAGE_TITLE": "تفعيل المشترك"
-  }
+  },
+  "LAN_CONNECTED": "LAN متصل",
+  "OUTLET_NUMBER": "مخرج {{num}}",
+  "UNIT_WATT": "واط",
+  "UNIT_MILLIWATT": "م.و",
+  "UNIT_AMPERE": "أمبير",
+  "SHOW_MORE": "عرض المزيد",
+  "SHOW_LESS": "عرض أقل",
+  "DEFAULT_PLUG_NAME": "مشترك الصالة",
+  "ERROR_OCCURRED": "حدث خطأ",
+  "FAILED_TO_SAVE_PLUG": "فشل حفظ المشترك. يرجى المحاولة مرة أخرى.",
+  "OK": "حسناً",
+  "PLUG_NAME_PLACEHOLDER": "مثال: مشترك الصالة",
+  "WIFI_CONFIG_TITLE": "إعدادات شبكة Wi-Fi",
+  "WIFI_SSID_LABEL": "اسم شبكة Wi-Fi",
+  "WIFI_SSID_PLACEHOLDER": "اسم شبكة المنزل (2.4GHz)",
+  "WIFI_PASSWORD_LABEL": "كلمة مرور شبكة Wi-Fi",
+  "PASSWORD": "كلمة المرور",
+  "SEARCH_DEVICE": "بحث عن جهاز...",
+  "NO_DEVICES_MATCH": "لا توجد أجهزة مطابقة"
 }

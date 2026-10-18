@@ -166,7 +166,7 @@ export function Popover({
   const theme = useTheme();
   const { i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   const [measuredRect, setMeasuredRect] = useState<AnchorRect | null>(
     propAnchorRect ?? (anchorRef as any)?.currentRect ?? null

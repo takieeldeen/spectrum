@@ -41,7 +41,7 @@ export default function RootLayout() {
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
             <AnimatedSplashOverlay />
-            <StatusBar style={"inverted"} />
+            <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="login" />

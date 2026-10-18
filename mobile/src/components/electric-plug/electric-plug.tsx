@@ -56,7 +56,7 @@ export function PlugSocket({
 }) {
   const theme = useTheme();
   const isOnline = outlet?.on ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   // When disabled: buttons and indicators are greyed out instead of orange and green
   const greyColor = isDark ? "#6B7280" : "#9CA3AF";
@@ -182,7 +182,7 @@ export function ElectricPlug({
   style,
 }: PlugProps) {
   const theme = useTheme();
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   // Check if all outlets are turned off
   const outletList = [

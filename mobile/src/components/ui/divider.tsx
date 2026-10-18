@@ -106,7 +106,7 @@ export function Divider({
   const theme = useTheme();
   const { i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   // Theme-aware default divider color
   const defaultColor = color ?? (isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)");

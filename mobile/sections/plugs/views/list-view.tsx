@@ -17,6 +17,7 @@ import { useGetPlugList } from "@/api/plug";
 import { Button } from "@/components/ui";
 import Lucide from "@react-native-vector-icons/lucide";
 import { useRouter } from "expo-router";
+import { EmptyView } from "./empty-view";
 
 /* ==========================================================================
    1. DUMMY PLUGS BASED ON BACKEND MODEL (PlugSchema in plug.model.ts)
@@ -241,36 +242,9 @@ export function PlugsListView({
     }
 
     return (
-      <View style={styles.emptyContainer}>
-        <View
-          style={[
-            styles.emptyIconCircle,
-            { backgroundColor: `${theme.primary}15` },
-          ]}
-        >
-          <Lucide name="plug" size={36} color={theme.primary} />
-        </View>
-        <ThemedText style={styles.emptyTitle}>
-          {t("NO_PLUGS_FOUND", "No plugs found yet")}
-        </ThemedText>
-        <ThemedText
-          style={[styles.emptySubtitle, { color: theme.textSecondary }]}
-        >
-          {t(
-            "EMPTY_PLUGS_DESCRIPTION",
-            "You haven't added any electric plugs yet. You can add a new plug to start connecting devices.",
-          )}
-        </ThemedText>
-        <Button
-          color="primary"
-          onPress={() => router.push("/(tabs)/plugs/plug-create-edit-page")}
-          style={styles.emptyButton}
-        >
-          <ThemedText style={styles.emptyButtonText}>
-            {t("NEW_PLUG", "Add New Plug")}
-          </ThemedText>
-        </Button>
-      </View>
+      <EmptyView
+        onAddNew={() => router.push("/(tabs)/plugs/plug-create-edit-page")}
+      />
     );
   };
 
@@ -296,22 +270,24 @@ export function PlugsListView({
             />
           }
         />
-        <Button
-          color="primary"
-          onPress={() => router.push("/(tabs)/plugs/plug-create-edit-page")}
-          style={{
-            height: 48,
-            width: 48,
-            borderRadius: 24,
-            paddingHorizontal: 0,
-            paddingVertical: 0,
-            position: "absolute",
-            bottom: 12,
-            right: 12,
-          }}
-        >
-          <Lucide name="plus" color="white" size={24} />
-        </Button>
+        {plugs.length > 0 && (
+          <Button
+            color="primary"
+            onPress={() => router.push("/(tabs)/plugs/plug-create-edit-page")}
+            style={{
+              height: 48,
+              width: 48,
+              borderRadius: 24,
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+              position: "absolute",
+              bottom: 12,
+              right: 12,
+            }}
+          >
+            <Lucide name="plus" color="white" size={24} />
+          </Button>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
@@ -338,49 +314,11 @@ const styles = StyleSheet.create({
   listContentEmpty: {
     flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
   },
   centerContainer: {
     paddingVertical: 60,
     alignItems: "center",
     justifyContent: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-  },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    textAlign: "center",
-    lineHeight: 18,
-    marginBottom: 20,
-    maxWidth: 300,
-  },
-  emptyButton: {
-    paddingHorizontal: 20,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
   },
 });

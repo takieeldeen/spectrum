@@ -1,7 +1,7 @@
-import PlugModel from '../models/plug.model';
-import { IPlug } from '../types/plug.type';
+import PlugModel from "../models/plug.model";
+import { IPlug } from "../types/plug.type";
 
-import DeviceModel from '../models/device.model';
+import DeviceModel from "../models/device.model";
 
 export class PlugService {
   /**
@@ -20,7 +20,11 @@ export class PlugService {
    * @param userId Optional user ID to ensure ownership
    * @returns The updated plug entity
    */
-  async updatePlug(id: string, data: Partial<IPlug>, userId?: string): Promise<IPlug | null> {
+  async updatePlug(
+    id: string,
+    data: Partial<IPlug>,
+    userId?: string,
+  ): Promise<IPlug | null> {
     const filter: Record<string, any> = { _id: id };
     if (userId) {
       filter.user = userId;
@@ -47,14 +51,17 @@ export class PlugService {
   async unassignAllDevicesForPlug(plugId: string): Promise<void> {
     await DeviceModel.updateMany(
       { plugId },
-      { $set: { plugId: null, plugPort: null } }
+      { $set: { plugId: null, plugPort: null } },
     );
   }
 
   /**
    * Assigns devices to a plug
    */
-  async assignDevicesToPlug(plugId: string, devices: Record<number, string | null | undefined>): Promise<void> {
+  async assignDevicesToPlug(
+    plugId: string,
+    devices: Record<number, string | null | undefined>,
+  ): Promise<void> {
     for (const [portStr, deviceId] of Object.entries(devices)) {
       if (deviceId) {
         await DeviceModel.findByIdAndUpdate(deviceId, {
@@ -100,7 +107,7 @@ export class PlugService {
     plugId: string,
     outlet: number,
     state: "on" | "off",
-    userId?: string
+    userId?: string,
   ): Promise<{ success: boolean; message: string }> {
     const plug = await this.getPlugById(plugId, userId);
     if (!plug) {
@@ -135,7 +142,7 @@ export class PlugService {
     if (normalizedState === "on") {
       await DeviceModel.findOneAndUpdate(
         { plugId, plugPort: outlet },
-        { lastTurnedOn: new Date() }
+        { lastTurnedOn: new Date() },
       ).exec();
     }
 

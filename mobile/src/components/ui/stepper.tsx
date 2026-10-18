@@ -340,7 +340,7 @@ export function Stepper({
   nonLinear = false,
 }: StepperProps) {
   const theme = useTheme();
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
   const [containerWidth, setContainerWidth] = useState(0);
 
   // Normalize steps to StepItem format

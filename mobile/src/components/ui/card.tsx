@@ -159,7 +159,7 @@ export function Card({
   const theme = useTheme();
   const { i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   const cardBackground = backgroundColor ?? theme.backgroundElement;
 

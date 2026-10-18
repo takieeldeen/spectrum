@@ -108,16 +108,20 @@ export function PlugCard({
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   const popover = usePopover();
   const { showConfirmation, confirmationProps } = useConfirmationMessage();
   const deleteMutation = useDeletePlug();
 
   // Plug info
-  const plugName = isArabic
-    ? plug?.arabicName || plug?.nameAr || plug?.name || "مشترك الصالة"
-    : plug?.name || plug?.nameEn || plug?.arabicName || "Power Strip";
+  const plugName =
+    (isArabic
+      ? plug?.arabicName || plug?.nameAr
+      : plug?.name || plug?.nameEn) ||
+    plug?.arabicName ||
+    plug?.name ||
+    t("DEFAULT_PLUG_NAME");
 
   const plugId = plug?._id || plug?.id;
 
@@ -139,12 +143,10 @@ export function PlugCard({
     popover.onClose();
     showConfirmation({
       variant: "Warning",
-      title: isArabic ? "حذف المشترك" : "Delete Plug",
-      subtitle: isArabic
-        ? `هل أنت متأكد من رغبتك في حذف المشترك "${plugName}"؟ لا يمكن التراجع عن هذا الإجراء.`
-        : `Are you sure you want to delete "${plugName}"? This action cannot be undone.`,
-      confirmText: isArabic ? "حذف" : "Delete",
-      cancelText: isArabic ? "إلغاء" : "Cancel",
+      title: t("CONFIRM_DELETE_PLUG_TITLE"),
+      subtitle: t("CONFIRM_DELETE_PLUG_MESSAGE", { name: plugName }),
+      confirmText: t("DELETE"),
+      cancelText: t("CANCEL"),
       onConfirm: async () => {
         if (onDelete && plug) {
           onDelete(plug);
@@ -398,7 +400,7 @@ export function PlugCard({
                 ]}
               >
                 {isStripSocketConnected
-                  ? "LAN متصل"
+                  ? t("LAN_CONNECTED")
                   : isConnected
                     ? t("DASHBOARD.ONLINE")
                     : t("DASHBOARD.OFFLINE")}
@@ -481,7 +483,7 @@ export function PlugCard({
                         />
                       </View>
                       <ThemedText style={styles.outletTitleText}>
-                        {isArabic ? `مخرج ${num}` : `Outlet ${num}`}
+                        {t("OUTLET_NUMBER", { num })}
                       </ThemedText>
                     </View>
 
@@ -537,7 +539,7 @@ export function PlugCard({
                           outlet.on && { color: theme.primary },
                         ]}
                       >
-                        {`${outlet.watts ?? 0} ${isArabic ? "واط" : "W"}`}
+                        {`${outlet.watts ?? 0} ${t("UNIT_WATT")}`}
                       </ThemedText>
                     </View>
 
@@ -569,7 +571,7 @@ export function PlugCard({
                           outlet.on && { color: theme.primary },
                         ]}
                       >
-                        {`${outlet.power_mw ?? 0} ${isArabic ? "م.و" : "mW"}`}
+                        {`${outlet.power_mw ?? 0} ${t("UNIT_MILLIWATT")}`}
                       </ThemedText>
                     </View>
 
@@ -601,7 +603,7 @@ export function PlugCard({
                           outlet.on && { color: theme.primary },
                         ]}
                       >
-                        {`${currentAmp} ${isArabic ? "أمبير" : "A"}`}
+                        {`${currentAmp} ${t("UNIT_AMPERE")}`}
                       </ThemedText>
                     </View>
 
@@ -633,7 +635,7 @@ export function PlugCard({
                           outlet.on && { color: theme.primary },
                         ]}
                       >
-                        {`${outlet.temperature_c ?? (outlet.on ? 32 : 24)}°${isArabic ? "م" : "C"}`}
+                        {`${outlet.temperature_c ?? (outlet.on ? 32 : 24)}${t("UNIT_CELSIUS")}`}
                       </ThemedText>
                     </View>
                   </View>
@@ -658,13 +660,7 @@ export function PlugCard({
           </Animated.View>
         }
       >
-        {isExpanded
-          ? isArabic
-            ? "عرض أقل"
-            : "Show less"
-          : isArabic
-            ? "عرض المزيد"
-            : "Show more"}
+        {isExpanded ? t("SHOW_LESS") : t("SHOW_MORE")}
       </Button>
       </Card>
 
@@ -674,14 +670,14 @@ export function PlugCard({
           icon={<Lucide name="pencil" size={18} color={theme.text} />}
           onPress={handleEdit}
         >
-          {isArabic ? "تعديل" : "Edit"}
+          {t("EDIT")}
         </Popover.Item>
         <Popover.Item
           destructive
           icon={<Lucide name="trash-2" size={18} color="#EF4444" />}
           onPress={handleDelete}
         >
-          {isArabic ? "حذف" : "Delete"}
+          {t("DELETE")}
         </Popover.Item>
       </Popover>
 

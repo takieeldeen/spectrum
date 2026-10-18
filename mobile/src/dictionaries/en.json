@@ -249,5 +249,24 @@
   },
   "PLUG_ACTIVATION": {
     "PAGE_TITLE": "Plug Activation"
-  }
+  },
+  "LAN_CONNECTED": "LAN Connected",
+  "OUTLET_NUMBER": "Outlet {{num}}",
+  "UNIT_WATT": "W",
+  "UNIT_MILLIWATT": "mW",
+  "UNIT_AMPERE": "A",
+  "SHOW_MORE": "Show more",
+  "SHOW_LESS": "Show less",
+  "DEFAULT_PLUG_NAME": "Power Strip",
+  "ERROR_OCCURRED": "Error Occurred",
+  "FAILED_TO_SAVE_PLUG": "Failed to save plug. Please try again.",
+  "OK": "OK",
+  "PLUG_NAME_PLACEHOLDER": "e.g. Living Room Strip",
+  "WIFI_CONFIG_TITLE": "Wi-Fi Configuration",
+  "WIFI_SSID_LABEL": "Wi-Fi SSID",
+  "WIFI_SSID_PLACEHOLDER": "Home Wi-Fi SSID",
+  "WIFI_PASSWORD_LABEL": "Wi-Fi Password",
+  "PASSWORD": "Password",
+  "SEARCH_DEVICE": "Search device...",
+  "NO_DEVICES_MATCH": "No devices found"
 }

@@ -34,6 +34,36 @@ class HardwareService extends EventEmitter {
     );
   }
 
+  public isSerialConnected(serial?: string): boolean {
+    if (!serial) return false;
+    const cleanSerial = this.normalizeSerial(serial);
+    const socket = this.socketBySerial.get(cleanSerial);
+    return Boolean(socket && !socket.destroyed);
+  }
+
+  public isPlugConnected(plugId?: string): boolean {
+    if (!plugId) return false;
+    const serial = this.serialByPlugId.get(plugId);
+    if (serial && this.isSerialConnected(serial)) return true;
+    return false;
+  }
+
+  public getStripIpBySerial(serial?: string): string | null {
+    if (!serial) return null;
+    const cleanSerial = this.normalizeSerial(serial);
+    const socket = this.socketBySerial.get(cleanSerial);
+    if (socket && !socket.destroyed) {
+      return socket.remoteAddress?.replace(/^.*:/, "") || null;
+    }
+    return null;
+  }
+
+  public getStripIpByPlugId(plugId?: string): string | null {
+    if (!plugId) return null;
+    const serial = this.serialByPlugId.get(plugId);
+    return serial ? this.getStripIpBySerial(serial) : null;
+  }
+
   public bindPlugToSerial(plugId: string, serial: string) {
     const cleanSerial = this.normalizeSerial(serial);
     if (!cleanSerial || !plugId) return;

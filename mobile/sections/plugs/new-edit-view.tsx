@@ -205,13 +205,9 @@ export function PlugNewEditView() {
       // Show confirmation message with error without closing form
       showConfirmation({
         variant: "Error",
-        title: isArabic ? "حدث خطأ" : "Error Occurred",
-        subtitle:
-          error?.message ||
-          (isArabic
-            ? "فشل حفظ المشترك. يرجى المحاولة مرة أخرى."
-            : "Failed to save plug. Please try again."),
-        confirmText: isArabic ? "حسناً" : "OK",
+        title: t("ERROR_OCCURRED"),
+        subtitle: error?.message || t("FAILED_TO_SAVE_PLUG"),
+        confirmText: t("OK"),
       });
     }
   };
@@ -377,9 +373,7 @@ export function PlugNewEditView() {
                         textAlign: isArabic ? "right" : "left",
                       },
                     ]}
-                    placeholder={
-                      isArabic ? "مثال: مشترك الصالة" : "e.g. مشترك الصالة"
-                    }
+                    placeholder={t("PLUG_NAME_PLACEHOLDER")}
                     placeholderTextColor={`${theme.textSecondary}80`}
                     value={value || ""}
                     onBlur={onBlur}
@@ -453,14 +447,14 @@ export function PlugNewEditView() {
           <View style={styles.devicesSectionHeader}>
             <Lucide name="wifi" size={18} color={theme.primary} />
             <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-              {isArabic ? "إعدادات شبكة Wi-Fi" : "Wi-Fi Configuration"}
+              {t("WIFI_CONFIG_TITLE")}
             </ThemedText>
           </View>
 
           {/* Wi-Fi SSID Field */}
           <View style={styles.fieldGroup}>
             <ThemedText style={[styles.label, { color: theme.text }]}>
-              {isArabic ? "اسم شبكة Wi-Fi" : "Wi-Fi SSID"}
+              {t("WIFI_SSID_LABEL")}
             </ThemedText>
             <Controller
               control={control}
@@ -484,9 +478,7 @@ export function PlugNewEditView() {
                         textAlign: isArabic ? "right" : "left",
                       },
                     ]}
-                    placeholder={
-                      isArabic ? "اسم شبكة المنزل (2.4GHz)" : "Home Wi-Fi SSID"
-                    }
+                    placeholder={t("WIFI_SSID_PLACEHOLDER")}
                     placeholderTextColor={`${theme.textSecondary}80`}
                     value={value || ""}
                     onBlur={onBlur}
@@ -501,7 +493,7 @@ export function PlugNewEditView() {
           {/* Wi-Fi Password Field */}
           <View style={styles.fieldGroup}>
             <ThemedText style={[styles.label, { color: theme.text }]}>
-              {isArabic ? "كلمة مرور شبكة Wi-Fi" : "Wi-Fi Password"}
+              {t("WIFI_PASSWORD_LABEL")}
             </ThemedText>
             <Controller
               control={control}
@@ -525,7 +517,7 @@ export function PlugNewEditView() {
                         textAlign: isArabic ? "right" : "left",
                       },
                     ]}
-                    placeholder={isArabic ? "كلمة المرور" : "Password"}
+                    placeholder={t("PASSWORD")}
                     placeholderTextColor={`${theme.textSecondary}80`}
                     value={value || ""}
                     onBlur={onBlur}
@@ -576,14 +568,10 @@ export function PlugNewEditView() {
                       : device.nameEn || device.nameAr || ""
                   }
                   leadIcon="server"
-                  placeholder={t("SELECT_DEVICE", "Select a device")}
-                  searchPlaceholder={
-                    isArabic ? "بحث عن جهاز..." : "Search device..."
-                  }
-                  emptyLabel={t("UNASSIGNED", "Unassigned")}
-                  emptyResultsText={
-                    isArabic ? "لا توجد أجهزة مطابقة" : "No devices found"
-                  }
+                  placeholder={t("SELECT_DEVICE")}
+                  searchPlaceholder={t("SEARCH_DEVICE")}
+                  emptyLabel={t("UNASSIGNED")}
+                  emptyResultsText={t("NO_DEVICES_MATCH")}
                   disabled={isBusy}
                 />
               )}

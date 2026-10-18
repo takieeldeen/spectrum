@@ -300,11 +300,11 @@ export function useActivateStrip(): UseActivateStripReturn {
           if (isDone) return;
           try {
             const p = await getPlugById(plugId);
-            if (p && p.ipAddress) {
-              finish(p.ipAddress);
+            if (p && (p.connected || p.isOnline || p.ipAddress)) {
+              finish(p.ipAddress || "connected");
             }
           } catch (_) {}
-        }, 2000);
+        }, 1500);
       }
 
       timer = setTimeout(() => {

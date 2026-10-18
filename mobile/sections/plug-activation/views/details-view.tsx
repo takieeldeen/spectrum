@@ -37,7 +37,7 @@ const PlugActivationDetailsView = ({
     ssid?: string;
     password?: string;
   }>();
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   // Fetch plug info from backend if plugId is present
   const { data: plugData, isLoading: isLoadingPlug } = useGetPlugById(
@@ -615,7 +615,9 @@ const PlugActivationDetailsView = ({
                       color: isDark ? "#A7F3D0" : "#15803D",
                     }}
                   >
-                    IP: {activatedStripIp || connectedStripIp}
+                    {(activatedStripIp || connectedStripIp)?.includes(".")
+                      ? `IP: ${activatedStripIp || connectedStripIp}`
+                      : "متصل سحابياً"}
                   </ThemedText>
                 </View>
               )}

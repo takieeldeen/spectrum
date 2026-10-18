@@ -51,7 +51,7 @@ export function DeviceCard({
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
-  const isDark = theme.background === "#000000";
+  const isDark = theme.isDark;
 
   const popover = usePopover();
 
