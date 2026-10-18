@@ -145,6 +145,56 @@ export class PlugController {
       });
     }
   };
+
+  /**
+   * Handles toggling a specific outlet on a plug
+   */
+  toggleOutlet = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?._id?.toString() || req.userId;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const plugId = req.params.id || req.params.plugId;
+      const { outlet, state } = req.body;
+
+      if (!plugId) {
+        return res.status(400).json({
+          success: false,
+          message: "Plug ID is required.",
+        });
+      }
+
+      const outletNum = Number(outlet);
+      const normalizedState = typeof state === "string" ? state.toLowerCase() : "";
+
+      if (!outletNum || (normalizedState !== "on" && normalizedState !== "off")) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid outlet or state. Outlet must be between 1 and 4, state must be 'on' or 'off'.",
+        });
+      }
+
+      const result = await plugService.toggleOutlet(
+        plugId,
+        outletNum,
+        normalizedState as "on" | "off",
+        userId
+      );
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to toggle plug outlet.",
+      });
+    }
+  };
 }
 
 export default new PlugController();

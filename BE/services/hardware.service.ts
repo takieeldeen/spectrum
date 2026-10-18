@@ -249,14 +249,47 @@ class HardwareService extends EventEmitter {
   /**
    * Writes commands to the hardware socket.
    */
-  public sendCommand(plugId: string, command: string) {
-    const ipAddress = this.ipByPlugId.get(plugId);
+  public async sendCommand(plugId: string, command: string) {
+    let ipAddress = this.ipByPlugId.get(plugId);
+
+    // If not in memory, attempt lookup from database
+    if (!ipAddress) {
+      try {
+        const PlugModel = (await import("../models/plug.model")).default;
+        const plug = await PlugModel.findById(plugId);
+        if (plug?.ipAddress) {
+          ipAddress = plug.ipAddress;
+          this.ipByPlugId.set(plugId, ipAddress);
+        }
+      } catch (err) {
+        // Ignore DB lookup error
+      }
+    }
+
+    // If still no IP and exactly one strip is connected, route to it
+    if (!ipAddress && this.activeConnections.size === 1) {
+      ipAddress = Array.from(this.activeConnections.keys())[0];
+      this.ipByPlugId.set(plugId, ipAddress);
+    }
+
     if (!ipAddress) {
       console.error(`Cannot send command. No IP known for plug ${plugId}.`);
       return;
     }
 
-    const socket = this.activeConnections.get(ipAddress);
+    let socket = this.activeConnections.get(ipAddress);
+
+    // If socket not found by stored IP but one active connection exists, fallback to it
+    if ((!socket || socket.destroyed) && this.activeConnections.size === 1) {
+      const fallbackIp = Array.from(this.activeConnections.keys())[0];
+      const fallbackSocket = this.activeConnections.get(fallbackIp);
+      if (fallbackSocket && !fallbackSocket.destroyed) {
+        ipAddress = fallbackIp;
+        socket = fallbackSocket;
+        this.ipByPlugId.set(plugId, fallbackIp);
+      }
+    }
+
     if (!socket || socket.destroyed) {
       console.error(
         `Cannot send command. Strip at ${ipAddress} is not connected.`,

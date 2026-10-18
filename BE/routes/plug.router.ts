@@ -17,4 +17,7 @@ router.get("/:plugId", plugController.getPlugById);
 // PUT /plugs/:id
 router.put("/:id", plugController.updatePlug);
 
+// POST /plugs/:id/toggle
+router.post("/:id/toggle", plugController.toggleOutlet);
+
 export default router;

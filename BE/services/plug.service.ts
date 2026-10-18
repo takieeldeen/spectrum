@@ -78,6 +78,59 @@ export class PlugService {
     }
     return await PlugModel.findOne(filter);
   }
+
+  /**
+   * Toggles a plug outlet ON or OFF using hardware service
+   * and updates lastTurnedOn if a device is assigned to that port
+   */
+  async toggleOutlet(
+    plugId: string,
+    outlet: number,
+    state: "on" | "off",
+    userId?: string
+  ): Promise<{ success: boolean; message: string }> {
+    const plug = await this.getPlugById(plugId, userId);
+    if (!plug) {
+      throw new Error("Plug not found");
+    }
+
+    if (outlet < 1 || outlet > 4) {
+      throw new Error("Invalid outlet number. Must be between 1 and 4.");
+    }
+
+    const normalizedState = state.toLowerCase() as "on" | "off";
+    if (normalizedState !== "on" && normalizedState !== "off") {
+      throw new Error("Invalid state. Must be 'on' or 'off'.");
+    }
+
+    // Lazy load hardwareService to avoid circular dependency
+    const hardwareService = (await import("./hardware.service")).default;
+
+    // Ensure connection is mapped if plug has ipAddress
+    if (plug.ipAddress) {
+      hardwareService.connectToPlug(plugId, plug.ipAddress);
+    }
+
+    // Command format: up:onoff:PORT:on/off\r\n
+    const command = `up:onoff:${outlet}:${normalizedState}\r\n`;
+    hardwareService.sendCommand(plugId, command);
+
+    // Request immediate info refresh
+    hardwareService.sendCommand(plugId, "up:getinfo:all\r\n");
+
+    // If state is 'on', update the device assigned to this port
+    if (normalizedState === "on") {
+      await DeviceModel.findOneAndUpdate(
+        { plugId, plugPort: outlet },
+        { lastTurnedOn: new Date() }
+      ).exec();
+    }
+
+    return {
+      success: true,
+      message: `Outlet ${outlet} successfully turned ${normalizedState}`,
+    };
+  }
 }
 
 export default new PlugService();

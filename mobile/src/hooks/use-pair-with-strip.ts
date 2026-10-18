@@ -134,13 +134,7 @@ class StripConnectionManager {
 
   public async refreshPhoneIp(): Promise<string> {
     try {
-      if (Platform.OS === "android") {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) return "";
-      }
-      const ip = await (WifiManager as any).getIP();
+      const ip = await (WifiManager as any).getIP?.();
       if (ip && ip !== "0.0.0.0") {
         this.phoneHomeIp = ip;
         this.notify();
@@ -429,7 +423,7 @@ export function usePairWithStrip(
   options: UsePairWithStripOptions = {}
 ): UsePairWithStripReturn {
   const {
-    autoStart = true,
+    autoStart = false,
     targetStripIp,
     onStatusChange,
     onTelemetryChange,
@@ -468,7 +462,6 @@ export function usePairWithStrip(
 
     if (autoStart) {
       manager.startServer();
-      manager.refreshPhoneIp();
     }
 
     return () => {

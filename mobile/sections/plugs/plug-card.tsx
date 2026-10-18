@@ -18,6 +18,7 @@ import {
 } from "@/components/electric-plug";
 import { Card, Button } from "@/components/ui";
 import { usePairWithStrip } from "@/hooks/use-pair-with-strip";
+import { useTogglePlugOutlet } from "@/api/plug";
 
 /* ==========================================================================
    1. TYPES & PROPS
@@ -115,8 +116,11 @@ export function PlugCard({
     setAllOutlets: setAllStripOutlets,
   } = usePairWithStrip({
     targetStripIp: plug?.ipAddress,
-    autoStart: true,
+    autoStart: false,
   });
+
+  const toggleMutation = useTogglePlugOutlet();
+  const plugId = plug?._id || plug?.id;
 
   const isConnected =
     isStripSocketConnected ||
@@ -194,7 +198,7 @@ export function PlugCard({
     }
   }, [liveOutletStates, liveOutletDetails, liveTelemetry]);
 
-  // Outlets toggling (calls local TCP socket command directly)
+  // Outlets toggling (calls local TCP socket if available + cloud backend for 24/7 reliability)
   const handleToggleOutlet = async (
     key: "outlet1" | "outlet2" | "outlet3" | "outlet4",
   ) => {
@@ -202,12 +206,30 @@ export function PlugCard({
     const outletNum = portMap[key];
     const nextState = !outlets[key].on;
 
+    // Optimistic UI update
     setOutlets((prev) => ({
       ...prev,
       [key]: { ...prev[key], on: nextState },
     }));
 
-    await toggleStripOutlet(outletNum, nextState);
+    // 1. Direct local TCP if strip is dialed into this phone
+    if (isStripSocketConnected) {
+      await toggleStripOutlet(outletNum, nextState);
+    }
+
+    // 2. Cloud backend API (where strip is dialed into 13.62.76.178:10086)
+    if (plugId) {
+      try {
+        await toggleMutation.mutateAsync({
+          plugId,
+          outlet: outletNum,
+          state: nextState ? "on" : "off",
+        });
+      } catch (err) {
+        console.warn("Cloud toggle failed:", err);
+      }
+    }
+
     onToggleOutlet?.(key, nextState);
   };
 
@@ -222,7 +244,20 @@ export function PlugCard({
       outlet4: { ...outlets.outlet4, on: nextState },
     });
 
-    await setAllStripOutlets(nextState);
+    if (isStripSocketConnected) {
+      await setAllStripOutlets(nextState);
+    }
+
+    if (plugId) {
+      for (let i = 1; i <= 4; i++) {
+        toggleMutation.mutate({
+          plugId,
+          outlet: i,
+          state: nextState ? "on" : "off",
+        });
+      }
+    }
+
     onToggleMaster?.(nextState);
   };
 

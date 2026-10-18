@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Platform, PermissionsAndroid } from "react-native";
 import WifiManager from "react-native-wifi-reborn";
 import TcpSocket from "react-native-tcp-socket";
-import { useUpdatePlug } from "@/api/plug";
+import { useUpdatePlug, getPlugById } from "@/api/plug";
+import { DEFAULT_SERVER_HOST } from "@/constants/api";
 import { stripConnectionManager } from "./use-pair-with-strip";
 
 export const STRIP_HOTSPOT_PORT = 30300; // Port when strip is in SoftAP mode
@@ -256,9 +257,10 @@ export function useActivateStrip(): UseActivateStripReturn {
   };
 
   /**
-   * Helper to verify strip connection on LAN via shared stripConnectionManager
+   * Helper to verify strip connection on LAN or Cloud via shared manager & cloud polling
    */
   const waitForStripOnLan = (
+    plugId?: string,
     timeoutMs: number = 30000
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -273,29 +275,50 @@ export function useActivateStrip(): UseActivateStripReturn {
 
       let isDone = false;
       let timer: any = null;
+      let pollInterval: any = null;
+
+      const finish = (ip: string) => {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timer);
+        clearInterval(pollInterval);
+        stripConnectionManager.unsubscribe(checkListener);
+        resolve(ip);
+      };
 
       const checkListener = () => {
         if (!isDone && stripConnectionManager.connectedStripIp) {
-          isDone = true;
-          clearTimeout(timer);
-          stripConnectionManager.unsubscribe(checkListener);
-          resolve(stripConnectionManager.connectedStripIp);
+          finish(stripConnectionManager.connectedStripIp);
         }
       };
+
+      stripConnectionManager.subscribe(checkListener);
+
+      // Poll cloud backend to detect when strip dials the cloud server
+      if (plugId) {
+        pollInterval = setInterval(async () => {
+          if (isDone) return;
+          try {
+            const p = await getPlugById(plugId);
+            if (p && p.ipAddress) {
+              finish(p.ipAddress);
+            }
+          } catch (_) {}
+        }, 2000);
+      }
 
       timer = setTimeout(() => {
         if (!isDone) {
           isDone = true;
+          clearInterval(pollInterval);
           stripConnectionManager.unsubscribe(checkListener);
           reject(
             new Error(
-              "Timed out waiting for strip to connect to the local Wi-Fi."
+              "Timed out waiting for strip to connect to the Wi-Fi. Check Wi-Fi credentials and ensure port 10086 is open on the server."
             )
           );
         }
       }, timeoutMs);
-
-      stripConnectionManager.subscribe(checkListener);
     });
   };
 
@@ -424,14 +447,11 @@ export function useActivateStrip(): UseActivateStripReturn {
         }
       } catch (_) {}
 
-      // Step 4: Send Target Server IP (Phone's IP where strip dials back on port 10086)
+      // Step 4: Send Target Server IP (Cloud Server IP where strip connects back on port 10086)
       setCurrentStep("SENDING_SERVER_IP");
-      let hostIp = params.serverIp || detectedPhoneIp;
-      if (!hostIp) {
-        hostIp = stripConnectionManager.phoneHomeIp;
-      }
-      const targetServerIp = hostIp || "192.168.1.13";
-      setStatusMessage(`إرسال عنوان هاتف التحكم (${targetServerIp})...`);
+      const targetServerIp =
+        params.serverIp || DEFAULT_SERVER_HOST || "13.62.76.178";
+      setStatusMessage(`إرسال عنوان خادم المزامنة السحابي (${targetServerIp})...`);
 
       try {
         await sendStripTcpCommand(
@@ -492,7 +512,7 @@ export function useActivateStrip(): UseActivateStripReturn {
 
       let verifiedIp: string = "";
       try {
-        verifiedIp = await waitForStripOnLan(30000);
+        verifiedIp = await waitForStripOnLan(params.plugId, 30000);
         setActivatedStripIp(verifiedIp);
       } catch (verifyErr: any) {
         throw {

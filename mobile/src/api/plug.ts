@@ -171,3 +171,53 @@ export const useUpdatePlug = () => {
     },
   });
 };
+
+/**
+ * Toggles an outlet on a plug via the cloud backend
+ */
+export async function togglePlugOutlet(
+  plugId: string,
+  outlet: number,
+  state: "on" | "off",
+  token?: string | null
+): Promise<{ success: boolean; message: string }> {
+  const authToken = token ?? (await getAuthSession())?.token;
+
+  const response = await fetch(`${API_BASE_URL}/plugs/${plugId}/toggle`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ outlet, state }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Failed to toggle plug outlet.");
+  }
+
+  return data;
+}
+
+/**
+ * TanStack Query mutation hook to toggle a plug outlet
+ */
+export const useTogglePlugOutlet = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { success: boolean; message: string },
+    Error,
+    { plugId: string; outlet: number; state: "on" | "off" }
+  >({
+    mutationFn: ({ plugId, outlet, state }) =>
+      togglePlugOutlet(plugId, outlet, state),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["plugs"] });
+      queryClient.invalidateQueries({ queryKey: ["plugs", variables.plugId] });
+    },
+  });
+};
