@@ -18,6 +18,7 @@ import ActivationStepper from "../activation-stepper";
 import { useActivateStrip } from "@/hooks/use-activate-strip";
 import { usePairWithStrip } from "@/hooks/use-pair-with-strip";
 import { useGetPlugById } from "@/api/plug";
+import { DEFAULT_SERVER_HOST } from "@/constants/api";
 import { getAppFont } from "@/constants/fonts";
 
 interface PlugActivationDetailsViewProps {
@@ -132,7 +133,7 @@ const PlugActivationDetailsView = ({
         serialNumber: effectiveSerial.trim(),
         homeSsid: effectiveSsid.trim(),
         homePassword: effectivePass.trim(),
-        serverIp: detectedPhoneIp,
+        serverIp: DEFAULT_SERVER_HOST,
         plugId: params.plugId,
       });
     }
@@ -169,7 +170,7 @@ const PlugActivationDetailsView = ({
       serialNumber: serialNumber.trim(),
       homeSsid: wifiSsid.trim(),
       homePassword: wifiPassword.trim(),
-      serverIp: detectedPhoneIp,
+      serverIp: DEFAULT_SERVER_HOST,
       plugId: params.plugId,
     });
   };

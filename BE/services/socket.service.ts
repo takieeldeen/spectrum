@@ -35,12 +35,11 @@ export function initializeSocket(httpServer: HttpServer) {
       console.log(`Client ${socket.id} joined room plug_${plugId}`);
 
       try {
-        // Fetch the plug's IP from the database
+        // Fetch the plug's serialNumber from the database
         const plug = await plugService.getPlugById(plugId);
-        if (plug && plug.ipAddress) {
-          console.log(plug.ipAddress);
-          // Tell the hardware manager to open the raw TCP socket!
-          hardwareService.connectToPlug(plugId, plug.ipAddress);
+        if (plug && plug.serialNumber) {
+          console.log(`Connecting to plug ${plugId} with serial ${plug.serialNumber}`);
+          hardwareService.connectToPlug(plugId, plug.serialNumber);
         }
       } catch (err) {
         console.error('Failed to connect to plug hardware on join', err);

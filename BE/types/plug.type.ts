@@ -9,7 +9,6 @@ export interface IPlug extends Document {
   serialNumber: string;
   SSID?: string;
   wifiPassword?: string;
-  ipAddress?: string;
   roomId?: string;
   createdAt?: Date;
   updatedAt?: Date;

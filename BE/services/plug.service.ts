@@ -106,9 +106,9 @@ export class PlugService {
     // Lazy load hardwareService to avoid circular dependency
     const hardwareService = (await import("./hardware.service")).default;
 
-    // Ensure connection is mapped if plug has ipAddress
-    if (plug.ipAddress) {
-      hardwareService.connectToPlug(plugId, plug.ipAddress);
+    // Ensure connection is mapped if plug has serialNumber
+    if (plug.serialNumber) {
+      hardwareService.connectToPlug(plugId, plug.serialNumber);
     }
 
     // Command format: up:onoff:PORT:on/off\r\n
