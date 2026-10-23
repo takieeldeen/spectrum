@@ -268,5 +268,20 @@
   "WIFI_PASSWORD_LABEL": "كلمة مرور شبكة Wi-Fi",
   "PASSWORD": "كلمة المرور",
   "SEARCH_DEVICE": "بحث عن جهاز...",
-  "NO_DEVICES_MATCH": "لا توجد أجهزة مطابقة"
+  "NO_DEVICES_MATCH": "لا توجد أجهزة مطابقة",
+  "DEVICE_CARD": {
+    "VOLTAGE": "فرق الجهد",
+    "CURRENT": "شدة التيار",
+    "POWER": "الاستهلاك الآن",
+    "UNIT_VOLT": "فولت",
+    "UNIT_AMPERE": "أمبير",
+    "UNIT_WATT": "واط",
+    "MORE_DETAILS": "تفاصيل إضافية",
+    "TURN_OFF": "إيقاف\u00A0الجهاز",
+    "TURN_ON": "تشغيل\u00A0الجهاز",
+    "UNASSIGNED": "غير معيّن",
+    "OUTLET_NUMBER": "مخرج #{{num}}",
+    "DEFAULT_NAME": "الكمبيوتر",
+    "DEFAULT_STRIP": "مشترك المكتب"
+  }
 }

@@ -30,7 +30,7 @@ class HardwareService extends EventEmitter {
     const plugIds = this.plugIdsBySerial.get(cleanSerial);
     const count = plugIds ? plugIds.size : 0;
     console.log(
-      `🔗 Strip socket bound to serial [${cleanSerial}] (Mapped Plugs: ${count})`
+      `🔗 Strip socket bound to serial [${cleanSerial}] (Mapped Plugs: ${count})`,
     );
   }
 
@@ -75,7 +75,10 @@ class HardwareService extends EventEmitter {
     this.serialByPlugId.set(plugId, cleanSerial);
 
     // If an anonymous connected socket exists and no socket is yet assigned to this serial, assign it
-    if (!this.socketBySerial.has(cleanSerial) && this.connectedSockets.size > 0) {
+    if (
+      !this.socketBySerial.has(cleanSerial) &&
+      this.connectedSockets.size > 0
+    ) {
       for (const sock of this.connectedSockets) {
         if (!sock.destroyed && !this.serialBySocket.has(sock)) {
           this.bindSocketToSerial(sock, cleanSerial);
@@ -203,9 +206,9 @@ class HardwareService extends EventEmitter {
           const outlets: Record<string, any> = {};
 
           for (let i = 1; i <= 4; i++) {
-            // Match:
+            // Match :1:, :2:, :3:, :4: (requiring : boundary so temperatures like 23: or 24: aren't matched)
             // 1:runtime;relay;state;overload;overheat;power;energy;previous;config;status;event;temperature
-            const regex = new RegExp(`${i}:([^:]+)`, "i");
+            const regex = new RegExp(`(?:^|:)${i}:([^:\\r\\n]+)`, "i");
             const match = raw.match(regex);
 
             if (!match) continue;
@@ -261,7 +264,12 @@ class HardwareService extends EventEmitter {
               rawParts: parts,
             };
           }
-
+          console.log(
+            Object.values(outlets).map((outlet: any) =>
+              outlet.on ? "_" : "X",
+            ),
+            "NEW_DATA",
+          );
           // Broadcast to all users/plugs connected to this physical strip
           for (const plugId of targetPlugIds) {
             this.emit("hardware_data", {
@@ -295,7 +303,7 @@ class HardwareService extends EventEmitter {
           const isOn = eventMatch[2].toLowerCase() === "on";
 
           console.log(
-            `🔘 Physical button pressed: Socket ${ch} is now ${isOn ? "ON" : "OFF"}`
+            `🔘 Physical button pressed: Socket ${ch} is now ${isOn ? "ON" : "OFF"}`,
           );
 
           if (isOn) {
@@ -304,10 +312,10 @@ class HardwareService extends EventEmitter {
                 for (const plugId of targetPlugIds) {
                   DeviceModel.findOneAndUpdate(
                     { plugId, plugPort: ch },
-                    { lastTurnedOn: new Date() }
+                    { lastTurnedOn: new Date() },
                   ).exec();
                 }
-              }
+              },
             );
           }
 
@@ -333,7 +341,7 @@ class HardwareService extends EventEmitter {
         const serial = this.serialBySocket.get(socket);
         console.error(
           `Socket error from strip ${serial ? `[${serial}]` : ""}:`,
-          err.message
+          err.message,
         );
       });
     });
@@ -348,8 +356,9 @@ class HardwareService extends EventEmitter {
    */
   public connectToPlug(plugId: string, serialNumber: string) {
     const cleanSerial = this.normalizeSerial(serialNumber);
+    if (this.socketBySerial.has(cleanSerial)) return;
     console.log(
-      `Frontend joined plug ${plugId} with expected Serial ${cleanSerial}`
+      `Frontend joined plug ${plugId} with expected Serial ${cleanSerial}`,
     );
     this.bindPlugToSerial(plugId, cleanSerial);
 
@@ -392,7 +401,7 @@ class HardwareService extends EventEmitter {
               this.bindSocketToSerial(socket, cleanSerial);
             }
             console.log(
-              `⚡ Routing command for plug ${plugId} to active strip socket`
+              `⚡ Routing command for plug ${plugId} to active strip socket`,
             );
             break;
           }
@@ -404,7 +413,7 @@ class HardwareService extends EventEmitter {
       console.error(
         `Cannot send command. No active strip connection found for serial [${
           cleanSerial || plugId
-        }] (connected strips: ${this.connectedSockets.size}).`
+        }] (connected strips: ${this.connectedSockets.size}).`,
       );
       return;
     }
@@ -412,7 +421,7 @@ class HardwareService extends EventEmitter {
     const payload = command.endsWith("\r\n") ? command : command + "\r\n";
     socket.write(payload);
     console.log(
-      `🚀 Sent command to strip [${cleanSerial || plugId}]: ${payload.trim()}`
+      `🚀 Sent command to strip [${cleanSerial || plugId}]: ${payload.trim()}`,
     );
   }
 

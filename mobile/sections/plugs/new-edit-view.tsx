@@ -52,9 +52,7 @@ export function PlugNewEditView() {
 
   const existingPlug =
     fetchedPlug ||
-    (plugId
-      ? DUMMY_PLUGS.find((p) => p._id === plugId || p.id === plugId)
-      : undefined);
+    (plugId ? DUMMY_PLUGS.find((p) => p._id === plugId) : undefined);
 
   const isEdit = Boolean(existingPlug || plugId);
 
@@ -76,8 +74,7 @@ export function PlugNewEditView() {
   // Fetch unassigned devices from backend (same hook & endpoint as next-project)
   const { data: availableDevices = [], isLoading: isLoadingDevices } =
     useGetUnassignedDevices(
-      plugId ||
-        (existingPlug ? existingPlug._id || existingPlug.id : undefined),
+      plugId || (existingPlug ? existingPlug._id : undefined),
     );
 
   // Localized Yup validation schema

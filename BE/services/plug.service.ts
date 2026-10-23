@@ -2,6 +2,7 @@ import PlugModel from "../models/plug.model";
 import { IPlug } from "../types/plug.type";
 
 import DeviceModel from "../models/device.model";
+import mongoose from "mongoose";
 
 export class PlugService {
   /**
@@ -150,6 +151,15 @@ export class PlugService {
       success: true,
       message: `Outlet ${outlet} successfully turned ${normalizedState}`,
     };
+  }
+  static async ownPlug(plugId: string, userId: string) {
+    console.log(plugId, userId);
+    const exists = await PlugModel.exists({
+      _id: new mongoose.Types.ObjectId(plugId),
+      user: new mongoose.Types.ObjectId(userId),
+    });
+    console.log(exists ? "User Own the plug" : "User doesn't own the plug");
+    return !!exists;
   }
 }
 

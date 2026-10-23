@@ -20,7 +20,13 @@ import { Spacing } from "@/constants/theme";
    1. TYPES & PROPS
    ========================================================================== */
 
-export type ButtonVariant = "contained" | "outlined" | "text" | "soft";
+export type ButtonVariant =
+  | "contained"
+  | "outlined"
+  | "text"
+  | "soft"
+  | "plain"
+  | "link";
 export type ButtonColor =
   | "primary"
   | "secondary"
@@ -36,8 +42,9 @@ export interface ButtonProps extends Omit<PressableProps, "style" | "children"> 
    * Button variant:
    * - `contained`: solid filled background with elevation.
    * - `outlined`: transparent background with border.
-   * - `text`: transparent background without border.
+   * - `text`: transparent background without border, just colored text.
    * - `soft`: subtle translucent background (20% alpha) with colored text.
+   * - `plain` / `link`: alias for text button.
    * @default 'contained'
    */
   variant?: ButtonVariant;
@@ -236,13 +243,26 @@ export function Button({
       break;
 
     case "text":
+    case "plain":
+    case "link":
     default:
       containerStyle = {
         backgroundColor: "transparent",
+        borderWidth: 0,
+        borderColor: "transparent",
+        elevation: 0,
+        shadowOpacity: 0,
+        minHeight: 0,
+        paddingHorizontal: size === "small" ? 4 : size === "large" ? 10 : 8,
+        paddingVertical: size === "small" ? 2 : 4,
       };
       contentColor = baseColor;
+      rippleColor = `${baseColor}18`;
       break;
   }
+
+  const isTextVariant =
+    variant === "text" || variant === "plain" || variant === "link";
 
   const spinner = loadingIndicator ?? (
     <ActivityIndicator
@@ -257,7 +277,7 @@ export function Button({
       disabled={isDisabled}
       android_ripple={{
         color: rippleColor,
-        borderless: false,
+        borderless: isTextVariant,
       }}
       style={({ pressed }) => [
         styles.root,
@@ -270,7 +290,9 @@ export function Button({
         },
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
-        pressed && Platform.OS === "ios" && !isDisabled && { opacity: 0.75 },
+        pressed &&
+          Platform.OS === "ios" &&
+          !isDisabled && { opacity: isTextVariant ? 0.6 : 0.75 },
         style,
       ]}
       {...rest}

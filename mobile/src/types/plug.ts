@@ -1,6 +1,5 @@
 export interface IPlug {
   _id?: string;
-  id?: string;
   user?: string;
   name: string;
   arabicName?: string;

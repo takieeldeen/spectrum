@@ -40,8 +40,8 @@ function DeviceCard({ device }: DeviceCardProps) {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const plugIdStr = typeof device?.plugId === 'object' ? device.plugId._id : device?.plugId;
-  const { liveData: stripData } = usePlugSocket(plugIdStr as string);
-  const outletProps = stripData?.outlets?.[`outlet${device?.plugPort}`];
+  const { liveData: PlugData } = usePlugSocket(plugIdStr as string);
+  const outletProps = PlugData?.outlets?.[`outlet${device?.plugPort}`];
   const isDark = theme.palette.mode === 'dark';
   const popover = usePopover();
   const deleteMutation = useDeleteDevice();
@@ -126,7 +126,7 @@ function DeviceCard({ device }: DeviceCardProps) {
               <Switch
                 checked={!!outletProps?.on}
                 onChange={handleToggle}
-                disabled={toggleMutation.isPending || !stripData}
+                disabled={toggleMutation.isPending || !PlugData}
               />
             </Stack>
             <Fade in={outletProps?.on} timeout={{ enter: 200, exit: 0 }}>
@@ -218,8 +218,8 @@ function DeviceCard({ device }: DeviceCardProps) {
               <Iconify icon="mdi:lightning-bolt-outline" width={32} color="primary.main" />
               <Stack alignItems="center">
                 <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1 }}>
-                  {outletProps?.on && stripData?.voltage !== undefined
-                    ? stripData.voltage.toFixed(0)
+                  {outletProps?.on && PlugData?.voltage !== undefined
+                    ? PlugData.voltage.toFixed(0)
                     : '--'}{' '}
                   {t('VOLT')}
                 </Typography>

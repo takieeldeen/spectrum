@@ -16,8 +16,7 @@ import { RippleEffect, Button, Snackbar } from "@/components/ui";
 import ThemedText from "@/components/themed-text";
 import ActivationStepper from "../activation-stepper";
 import { useActivateStrip } from "@/hooks/use-activate-strip";
-import { usePairWithStrip } from "@/hooks/use-pair-with-strip";
-import { useGetPlugById } from "@/api/plug";
+import { useGetPlugById, useTogglePlugOutlet } from "@/api/plug";
 import { DEFAULT_SERVER_HOST } from "@/constants/api";
 import { getAppFont } from "@/constants/fonts";
 
@@ -73,18 +72,31 @@ const PlugActivationDetailsView = ({
     reset,
   } = useActivateStrip();
 
-  // Hook 2: Exclusively for pairing, querying status on demand, and controlling outlets
-  const {
-    isConnected: isPaired,
-    connectedStripIp,
-    outletStates,
-    telemetry,
-    toggleOutlet,
-    requestStatus,
-  } = usePairWithStrip({
-    autoStart: isSuccess,
-    targetStripIp: activatedStripIp,
+  // Test outlet state & toggle mutation for post-activation test
+  const [testOutletStates, setTestOutletStates] = useState<Record<number, boolean>>({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
   });
+  const toggleMutation = useTogglePlugOutlet();
+
+  const handleToggleTestOutlet = async (outletNum: number) => {
+    const next = !testOutletStates[outletNum];
+    setTestOutletStates((prev) => ({ ...prev, [outletNum]: next }));
+    const pId = params.plugId || plugData?._id;
+    if (pId) {
+      try {
+        await toggleMutation.mutateAsync({
+          plugId: pId,
+          outlet: outletNum,
+          state: next ? "on" : "off",
+        });
+      } catch (err) {
+        console.warn("Toggle test failed:", err);
+      }
+    }
+  };
 
   // Populate initial values once detected or loaded from backend via useGetPlugById
   useEffect(() => {
@@ -599,7 +611,7 @@ const PlugActivationDetailsView = ({
                 </ThemedText>
               </View>
 
-              {(activatedStripIp || connectedStripIp) && (
+              {activatedStripIp && (
                 <View
                   style={{
                     paddingHorizontal: 8,
@@ -615,8 +627,8 @@ const PlugActivationDetailsView = ({
                       color: isDark ? "#A7F3D0" : "#15803D",
                     }}
                   >
-                    {(activatedStripIp || connectedStripIp)?.includes(".")
-                      ? `IP: ${activatedStripIp || connectedStripIp}`
+                    {activatedStripIp.includes(".")
+                      ? `IP: ${activatedStripIp}`
                       : "متصل سحابياً"}
                   </ThemedText>
                 </View>
@@ -653,31 +665,20 @@ const PlugActivationDetailsView = ({
                 >
                   اضغط لاختبار المنافذ:
                 </ThemedText>
-                {telemetry.voltage > 0 && (
-                  <ThemedText
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: theme.primary,
-                    }}
-                  >
-                    {telemetry.voltage}V • {telemetry.watts}W
-                  </ThemedText>
-                )}
               </View>
 
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {[1, 2, 3, 4].map((outletNum) => (
                   <TouchableOpacity
                     key={outletNum}
-                    onPress={() => toggleOutlet(outletNum)}
+                    onPress={() => handleToggleTestOutlet(outletNum)}
                     activeOpacity={0.7}
                     style={{
                       flex: 1,
                       paddingVertical: 12,
                       alignItems: "center",
                       borderRadius: 10,
-                      backgroundColor: outletStates[outletNum]
+                      backgroundColor: testOutletStates[outletNum]
                         ? theme.primary
                         : isDark
                           ? "#1F382B"
@@ -688,7 +689,7 @@ const PlugActivationDetailsView = ({
                       style={{
                         fontSize: 12,
                         fontWeight: "700",
-                        color: outletStates[outletNum]
+                        color: testOutletStates[outletNum]
                           ? "#FFFFFF"
                           : theme.textSecondary,
                       }}
@@ -700,12 +701,12 @@ const PlugActivationDetailsView = ({
                         fontSize: 10,
                         fontWeight: "600",
                         marginTop: 2,
-                        color: outletStates[outletNum]
+                        color: testOutletStates[outletNum]
                           ? "rgba(255,255,255,0.8)"
                           : theme.textSecondary,
                       }}
                     >
-                      {outletStates[outletNum] ? "مفعل" : "معطل"}
+                      {testOutletStates[outletNum] ? "مفعل" : "معطل"}
                     </ThemedText>
                   </TouchableOpacity>
                 ))}

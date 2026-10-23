@@ -14,6 +14,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui";
+import HomeMainView from "../../../sections/home/views/main-view";
 
 function getDevMenuHint() {
   if (Platform.OS === "web") {
@@ -51,119 +52,7 @@ export default function HomeScreen() {
     router.replace("/login");
   };
 
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        {/* Top Header Row with Language Switcher */}
-        <View
-          style={[
-            styles.topBar,
-            {
-              justifyContent: isArabic ? "flex-start" : "flex-end",
-              flexDirection: isArabic ? "row-reverse" : "row",
-            },
-          ]}
-        >
-          <Pressable
-            onPress={toggleLanguage}
-            style={({ pressed }) => [
-              styles.languageButton,
-              {
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.backgroundSelected,
-                flexDirection: isArabic ? "row-reverse" : "row",
-              },
-              pressed && { opacity: 0.75 },
-            ]}
-          >
-            <Lucide name="languages" size={18} color={theme.primary} />
-            <ThemedText type="smallBold" style={styles.languageText}>
-              {isArabic ? "العربية" : "English"}
-            </ThemedText>
-            <View
-              style={[styles.langBadge, { backgroundColor: theme.primary }]}
-            >
-              <ThemedText style={styles.langBadgeText}>
-                {isArabic ? "EN" : "عربي"}
-              </ThemedText>
-            </View>
-          </Pressable>
-        </View>
-
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            {user?.name
-              ? isArabic
-                ? `مرحباً، ${user.name}`
-                : `Welcome, ${user.name}`
-              : isArabic
-                ? "مرحباً بك في سبيكتروم"
-                : "Welcome to Spectrum"}
-          </ThemedText>
-          {user?.email && (
-            <ThemedText type="small" style={{ opacity: 0.7 }}>
-              {user.email}
-            </ThemedText>
-          )}
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          {isArabic ? "البداية" : "get started"}
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title={isArabic ? "اللغة" : "Language"}
-            hint={
-              <Pressable
-                onPress={toggleLanguage}
-                style={({ pressed }) => [
-                  styles.hintLangBtn,
-                  { backgroundColor: theme.primary },
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <ThemedText style={styles.hintLangBtnText}>
-                  {isArabic ? "Switch to English" : "التبديل إلى العربية"}
-                </ThemedText>
-              </Pressable>
-            }
-          />
-          <HintRow
-            title={isArabic ? "جرّب التعديل" : "Try editing"}
-            hint={<ThemedText type="code">src/app/(tabs)/index.tsx</ThemedText>}
-          />
-          <HintRow
-            title={isArabic ? "أدوات المطور" : "Dev tools"}
-            hint={getDevMenuHint()}
-          />
-          <HintRow
-            title={isArabic ? "بداية جديدة" : "Fresh start"}
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-          <Button
-            onPress={() => router.push("/(tabs)/plugs/activate/124124124")}
-          >
-            Go to the new Page
-          </Button>
-          <Pressable
-            onPress={handleLogout}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <ThemedText type="smallBold" style={{ color: "#EF4444" }}>
-              {isArabic ? "تسجيل الخروج" : "Sign Out"}
-            </ThemedText>
-          </Pressable>
-        </ThemedView>
-
-        {Platform.OS === "web" && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+  return <HomeMainView />;
 }
 
 const styles = StyleSheet.create({

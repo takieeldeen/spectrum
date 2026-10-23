@@ -138,7 +138,7 @@ export default function TabTwoScreen() {
             let temp_c = 0;
 
             for (let i = 1; i <= 4; i++) {
-              const regex = new RegExp(`${i}:([^:]+)`, "i");
+              const regex = new RegExp(`(?:^|:)${i}:([^:\\r\\n]+)`, "i");
               const match = raw.match(regex);
               if (match) {
                 const parts = match[1].split(";");

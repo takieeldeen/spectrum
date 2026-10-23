@@ -4,7 +4,7 @@ import WifiManager from "react-native-wifi-reborn";
 import TcpSocket from "react-native-tcp-socket";
 import { useUpdatePlug, getPlugById } from "@/api/plug";
 import { DEFAULT_SERVER_HOST } from "@/constants/api";
-import { stripConnectionManager } from "./use-pair-with-strip";
+import { getWifiNetwork } from "@/utils/wifi";
 
 export const STRIP_HOTSPOT_PORT = 30300; // Port when strip is in SoftAP mode
 export const STRIP_LAN_PORT = 10086; // Port strip connects back to on LAN
@@ -129,7 +129,7 @@ export function useActivateStrip(): UseActivateStripReturn {
     try {
       if (Platform.OS === "android") {
         const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
       }
@@ -188,7 +188,7 @@ export function useActivateStrip(): UseActivateStripReturn {
     host: string,
     command: string,
     timeoutMs: number = 8000,
-    settleMs: number = 400
+    settleMs: number = 400,
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
       let client: any = null;
@@ -227,7 +227,7 @@ export function useActivateStrip(): UseActivateStripReturn {
           { host, port: STRIP_HOTSPOT_PORT },
           () => {
             client.write(command + "\r\n");
-          }
+          },
         );
 
         const cleanReceived = (raw: string) => raw.replace(/\0/g, "").trim();
@@ -238,7 +238,7 @@ export function useActivateStrip(): UseActivateStripReturn {
           clearTimeout(settleTimer);
           settleTimer = setTimeout(
             () => succeed(cleanReceived(received)),
-            settleMs
+            settleMs,
           );
         });
 
@@ -257,22 +257,13 @@ export function useActivateStrip(): UseActivateStripReturn {
   };
 
   /**
-   * Helper to verify strip connection on LAN or Cloud via shared manager & cloud polling
+   * Helper to verify strip connection on Cloud via backend polling
    */
   const waitForStripOnLan = (
     plugId?: string,
-    timeoutMs: number = 30000
+    timeoutMs: number = 30000,
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
-      // Ensure the shared TCP server on port 10086 is running
-      stripConnectionManager.startServer();
-
-      // If strip is already connected, resolve immediately
-      if (stripConnectionManager.connectedStripIp) {
-        resolve(stripConnectionManager.connectedStripIp);
-        return;
-      }
-
       let isDone = false;
       let timer: any = null;
       let pollInterval: any = null;
@@ -282,17 +273,8 @@ export function useActivateStrip(): UseActivateStripReturn {
         isDone = true;
         clearTimeout(timer);
         clearInterval(pollInterval);
-        stripConnectionManager.unsubscribe(checkListener);
         resolve(ip);
       };
-
-      const checkListener = () => {
-        if (!isDone && stripConnectionManager.connectedStripIp) {
-          finish(stripConnectionManager.connectedStripIp);
-        }
-      };
-
-      stripConnectionManager.subscribe(checkListener);
 
       // Poll cloud backend to detect when strip dials the cloud server
       if (plugId) {
@@ -305,17 +287,18 @@ export function useActivateStrip(): UseActivateStripReturn {
             }
           } catch (_) {}
         }, 1500);
+      } else {
+        setTimeout(() => finish("connected"), 2000);
       }
 
       timer = setTimeout(() => {
         if (!isDone) {
           isDone = true;
           clearInterval(pollInterval);
-          stripConnectionManager.unsubscribe(checkListener);
           reject(
             new Error(
-              "Timed out waiting for strip to connect to the Wi-Fi. Check Wi-Fi credentials and ensure port 10086 is open on the server."
-            )
+              "Timed out waiting for strip to connect to the Wi-Fi. Check Wi-Fi credentials and ensure port 10086 is open on the server.",
+            ),
           );
         }
       }, timeoutMs);
@@ -381,14 +364,15 @@ export function useActivateStrip(): UseActivateStripReturn {
 
       if (Platform.OS === "android") {
         const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
           throw {
             code: "PERMISSION_DENIED",
             step: "REQUESTING_PERMISSIONS",
             message: "تم رفض إذن الوصول للموقع الجغرافي المطلوب لشبكات Wi-Fi.",
-            recoveryHint: "يرجى منح إذن الموقع للتطبيق من إعدادات الهاتف والمحاولة مجدداً.",
+            recoveryHint:
+              "يرجى منح إذن الموقع للتطبيق من إعدادات الهاتف والمحاولة مجدداً.",
           };
         }
       }
@@ -400,11 +384,12 @@ export function useActivateStrip(): UseActivateStripReturn {
       setStatusMessage(`جاري الاتصال بنقطة بث المشترك (${stripWifiName})...`);
 
       try {
+        await getWifiNetwork(stripWifiName);
         await WifiManager.connectToProtectedSSID(
           stripWifiName,
           stripWifiPassword,
           false,
-          false
+          false,
         );
       } catch (hotspotErr: any) {
         throw {
@@ -449,15 +434,16 @@ export function useActivateStrip(): UseActivateStripReturn {
 
       // Step 4: Send Target Server IP (Cloud Server IP where strip connects back on port 10086)
       setCurrentStep("SENDING_SERVER_IP");
-      const targetServerIp =
-        params.serverIp || DEFAULT_SERVER_HOST || "13.62.76.178";
-      setStatusMessage(`إرسال عنوان خادم المزامنة السحابي (${targetServerIp})...`);
+      const targetServerIp = DEFAULT_SERVER_HOST;
+      setStatusMessage(
+        `إرسال عنوان خادم المزامنة السحابي (${targetServerIp})...`,
+      );
 
       try {
         await sendStripTcpCommand(
           stripGateway,
           `up:ip:${targetServerIp}`,
-          8000
+          8000,
         );
       } catch (ipErr: any) {
         throw {
@@ -480,14 +466,15 @@ export function useActivateStrip(): UseActivateStripReturn {
         await sendStripTcpCommand(
           stripGateway,
           `up:connect:${homeSsid}:${homePassword}`,
-          8000
+          8000,
         );
       } catch (credErr: any) {
         throw {
           code: "STRIP_NACK",
           step: "SENDING_WIFI_CREDENTIALS",
           message: "فشل في إرسال بيانات شبكة الـ Wi-Fi للمشترك.",
-          recoveryHint: "تأكد من صحة كلمة مرور الشبكة وخلوها من الرموز الخاصة كالنقطتين (:).",
+          recoveryHint:
+            "تأكد من صحة كلمة مرور الشبكة وخلوها من الرموز الخاصة كالنقطتين (:).",
           rawError: credErr,
         };
       }

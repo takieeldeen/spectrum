@@ -268,5 +268,20 @@
   "WIFI_PASSWORD_LABEL": "Wi-Fi Password",
   "PASSWORD": "Password",
   "SEARCH_DEVICE": "Search device...",
-  "NO_DEVICES_MATCH": "No devices found"
+  "NO_DEVICES_MATCH": "No devices found",
+  "DEVICE_CARD": {
+    "VOLTAGE": "Voltage",
+    "CURRENT": "Current",
+    "POWER": "Power",
+    "UNIT_VOLT": "V",
+    "UNIT_AMPERE": "A",
+    "UNIT_WATT": "W",
+    "MORE_DETAILS": "More Details",
+    "TURN_OFF": "Turn Off",
+    "TURN_ON": "Turn On",
+    "UNASSIGNED": "Unassigned",
+    "OUTLET_NUMBER": "Outlet #{{num}}",
+    "DEFAULT_NAME": "Workstation PC",
+    "DEFAULT_STRIP": "Office Strip"
+  }
 }

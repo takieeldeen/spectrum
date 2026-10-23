@@ -27,10 +27,22 @@ const dbName = process.env.DB_NAME;
 // Replace YOUR_CLUSTER_URL with your actual MongoDB cluster URL
 const mongoUri = `mongodb+srv://${dbUsername}:${dbPassword}@cluster0.tyxy7w0.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
 
+import metricsService from './services/metrics.service';
+
 if (dbUsername && dbPassword && dbName) {
   mongoose
     .connect(mongoUri)
-    .then(() => console.log('Connected to MongoDB via Mongoose'))
+    .then(() => {
+      console.log('Connected to MongoDB via Mongoose');
+      // Start background metrics rollups (hourly and daily continuous downsampling)
+      setInterval(() => {
+        metricsService.rollupHourly().catch((e) => console.error('Hourly rollup error:', e));
+      }, 10 * 60 * 1000); // every 10 min
+
+      setInterval(() => {
+        metricsService.rollupDaily().catch((e) => console.error('Daily rollup error:', e));
+      }, 60 * 60 * 1000); // every hour
+    })
     .catch((err) => console.error('MongoDB connection error:', err));
 } else {
   console.log('⚠️ MongoDB credentials missing in .env. Skipping database connection.');

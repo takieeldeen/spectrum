@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Lucide } from "@react-native-vector-icons/lucide";
 import { useTheme } from "@/hooks/use-theme";
+import { ThemedText } from "@/components/themed-text";
 
 /* ==========================================================================
    1. TYPES & PROPS
@@ -30,9 +31,15 @@ export type PlugProps = {
     outlet3?: OutletProps;
     outlet4?: OutletProps;
   };
+  outletNumbers?: {
+    outlet1?: number | string;
+    outlet2?: number | string;
+    outlet3?: number | string;
+    outlet4?: number | string;
+  };
   onToggleMaster?: () => void;
   onToggleOutlet?: (
-    outletKey: "outlet1" | "outlet2" | "outlet3" | "outlet4"
+    outletKey: "outlet1" | "outlet2" | "outlet3" | "outlet4",
   ) => void;
   hideSwitch?: boolean;
   disabled?: boolean;
@@ -45,11 +52,13 @@ export type PlugProps = {
 
 export function PlugSocket({
   outlet,
+  outletNumber,
   hideSwitch,
   disabled = false,
   onToggle,
 }: {
   outlet?: OutletProps;
+  outletNumber?: number | string;
   hideSwitch?: boolean;
   disabled?: boolean;
   onToggle?: () => void;
@@ -60,11 +69,15 @@ export function PlugSocket({
 
   // When disabled: buttons and indicators are greyed out instead of orange and green
   const greyColor = isDark ? "#6B7280" : "#9CA3AF";
-  const statusColor = disabled
+  const statusColor = disabled ? greyColor : isOnline ? "#10B981" : "#F59E0B";
+
+  const numberColor = disabled
     ? greyColor
     : isOnline
-    ? "#10B981"
-    : "#F59E0B";
+      ? isDark
+        ? "#34D399"
+        : "#059669"
+      : theme.textSecondary;
 
   return (
     <View style={[styles.socketContainer, disabled && { opacity: 0.75 }]}>
@@ -79,8 +92,8 @@ export function PlugSocket({
                 ? "rgba(107, 114, 128, 0.08)"
                 : "rgba(156, 163, 175, 0.1)"
               : isOnline
-              ? "rgba(16, 185, 129, 0.08)"
-              : "rgba(245, 158, 11, 0.06)",
+                ? "rgba(16, 185, 129, 0.08)"
+                : "rgba(245, 158, 11, 0.06)",
           },
         ]}
       >
@@ -89,7 +102,7 @@ export function PlugSocket({
           style={[
             styles.socketInner,
             {
-              backgroundColor: isDark ? "#1C1C1E" : "#F3F4F6",
+              backgroundColor: theme.socketInnerBackground,
               borderColor: isDark ? "#38383A" : "#D1D5DB",
             },
           ]}
@@ -139,30 +152,43 @@ export function PlugSocket({
         </View>
       </View>
 
-      {/* Socket Individual Power Switch Button */}
+      {/* Socket Individual Power Switch Button & Outlet Number */}
       {!hideSwitch && (
         <Pressable
           disabled={disabled}
           onPress={disabled ? undefined : onToggle}
           hitSlop={6}
           style={({ pressed }) => [
-            styles.socketButton,
-            {
-              borderColor: statusColor,
-              backgroundColor: disabled
-                ? isDark
-                  ? "#242426"
-                  : "#F3F4F6"
-                : isOnline
-                ? "rgba(16, 185, 129, 0.14)"
-                : isDark
-                ? "#242426"
-                : "#F3F4F6",
-            },
+            styles.switchContainer,
             pressed && !disabled && { opacity: 0.7 },
           ]}
         >
-          <Lucide name="power" size={12} color={statusColor} />
+          <View
+            style={[
+              styles.socketButton,
+              {
+                borderColor: statusColor,
+                backgroundColor: disabled
+                  ? isDark
+                    ? "#242426"
+                    : "#F3F4F6"
+                  : isOnline
+                    ? "rgba(16, 185, 129, 0.14)"
+                    : isDark
+                      ? "#242426"
+                      : "#F3F4F6",
+              },
+            ]}
+          >
+            <Lucide name="power" size={12} color={statusColor} />
+          </View>
+          {outletNumber != null && (
+            <ThemedText
+              style={[styles.outletNumberText, { color: numberColor }]}
+            >
+              {outletNumber}
+            </ThemedText>
+          )}
         </Pressable>
       )}
     </View>
@@ -175,6 +201,7 @@ export function PlugSocket({
 
 export function ElectricPlug({
   outlets,
+  outletNumbers,
   onToggleMaster,
   onToggleOutlet,
   hideSwitch,
@@ -197,13 +224,13 @@ export function ElectricPlug({
   const masterColor = disabled
     ? greyColor
     : allOffline
-    ? "#F59E0B"
-    : theme.primary;
+      ? "#F59E0B"
+      : theme.primary;
   const masterLedColor = disabled
     ? greyColor
     : allOffline
-    ? "#F59E0B"
-    : "#10B981";
+      ? "#F59E0B"
+      : "#10B981";
 
   return (
     <View style={styles.wrapper}>
@@ -212,7 +239,9 @@ export function ElectricPlug({
           styles.stripBody,
           {
             backgroundColor: isDark ? theme.backgroundElement : "#FFFFFF",
-            borderColor: isDark ? theme.backgroundSelected : "rgba(0, 0, 0, 0.08)",
+            borderColor: isDark
+              ? theme.backgroundSelected
+              : "rgba(0, 0, 0, 0.08)",
           },
           disabled && { opacity: 0.8 },
           style,
@@ -221,24 +250,28 @@ export function ElectricPlug({
         {/* Outlets 1 to 4 */}
         <PlugSocket
           outlet={outlets?.outlet1}
+          outletNumber={outletNumbers?.outlet1 ?? 1}
           hideSwitch={hideSwitch}
           disabled={disabled}
           onToggle={() => !disabled && onToggleOutlet?.("outlet1")}
         />
         <PlugSocket
           outlet={outlets?.outlet2}
+          outletNumber={outletNumbers?.outlet2 ?? 2}
           hideSwitch={hideSwitch}
           disabled={disabled}
           onToggle={() => !disabled && onToggleOutlet?.("outlet2")}
         />
         <PlugSocket
           outlet={outlets?.outlet3}
+          outletNumber={outletNumbers?.outlet3 ?? 3}
           hideSwitch={hideSwitch}
           disabled={disabled}
           onToggle={() => !disabled && onToggleOutlet?.("outlet3")}
         />
         <PlugSocket
           outlet={outlets?.outlet4}
+          outletNumber={outletNumbers?.outlet4 ?? 4}
           hideSwitch={hideSwitch}
           disabled={disabled}
           onToggle={() => !disabled && onToggleOutlet?.("outlet4")}
@@ -273,10 +306,10 @@ export function ElectricPlug({
                       ? "#242426"
                       : "#F3F4F6"
                     : allOffline
-                    ? isDark
-                      ? "#242426"
-                      : "#FFFBEB"
-                    : `${theme.primary}18`,
+                      ? isDark
+                        ? "#242426"
+                        : "#FFFBEB"
+                      : `${theme.primary}18`,
                 },
                 pressed && !disabled && { opacity: 0.7 },
               ]}
@@ -338,7 +371,7 @@ const styles = StyleSheet.create({
   },
   stripBody: {
     width: "100%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 10,
@@ -428,6 +461,12 @@ const styles = StyleSheet.create({
     height: 5.5,
     borderRadius: 3,
   },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
   socketButton: {
     width: 22,
     height: 22,
@@ -435,6 +474,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
+  },
+  outletNumberText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "700",
   },
   masterSection: {
     flex: 1.1,

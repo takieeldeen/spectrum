@@ -1,6 +1,12 @@
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import { User } from "@/types/user";
+let SecureStore: typeof import("expo-secure-store") | null = null;
+try {
+  SecureStore = require("expo-secure-store");
+} catch {
+  SecureStore = null;
+}
 
 export interface StoredAuthSession {
   token: string;
@@ -31,7 +37,17 @@ export async function saveAuthSession(
       return;
     }
 
-    if (FileSystem.documentDirectory) {
+    let saved = false;
+    if (SecureStore?.setItemAsync) {
+      try {
+        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(payload));
+        saved = true;
+      } catch (e) {
+        // Fall back to FileSystem
+      }
+    }
+
+    if (!saved && FileSystem.documentDirectory) {
       const fileUri = `${FileSystem.documentDirectory}${AUTH_FILE_NAME}`;
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(payload));
     }
@@ -55,6 +71,19 @@ export async function getAuthSession(): Promise<StoredAuthSession | null> {
         }
       }
       return memoryStorage;
+    }
+
+    if (SecureStore?.getItemAsync) {
+      try {
+        const data = await SecureStore.getItemAsync(STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data) as StoredAuthSession;
+          memoryStorage = parsed;
+          return parsed;
+        }
+      } catch (e) {
+        // Fall back to FileSystem
+      }
     }
 
     if (FileSystem.documentDirectory) {

@@ -1,89 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_BASE_URL } from "@/constants/api";
 import {
   IPlug,
   CreatePlugPayload,
   PlugApiResponse,
   PlugListApiResponse,
 } from "@/types/plug";
-import { getAuthSession } from "@/utils/storage";
+import api from "./axios";
 
 /**
  * Fetches all plugs belonging to the authenticated user
  */
-export async function getPlugList(token?: string | null): Promise<IPlug[]> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-  });
-
-  const data: PlugListApiResponse = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to fetch plugs list.");
-  }
-
+export async function getPlugList(): Promise<IPlug[]> {
+  const { data } = await api.get<PlugListApiResponse>("/plugs");
   return data.data || [];
 }
 
 /**
  * Creates a new plug entity on the backend
  */
-export async function createPlug(
-  payload: CreatePlugPayload,
-  token?: string | null
-): Promise<IPlug> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data: PlugApiResponse = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to create plug.");
-  }
-
+export async function createPlug(payload: CreatePlugPayload): Promise<IPlug> {
+  const { data } = await api.post<PlugApiResponse>("/plugs", payload);
   return data.data;
 }
 
 /**
  * Fetches a single plug by ID
  */
-export async function getPlugById(
-  plugId: string,
-  token?: string | null
-): Promise<IPlug> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs/${plugId}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-  });
-
-  const data: PlugApiResponse = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to fetch plug details.");
-  }
-
+export async function getPlugById(plugId: string): Promise<IPlug> {
+  const { data } = await api.get<PlugApiResponse>(`/plugs/${plugId}`);
   return data.data;
 }
 
@@ -93,36 +37,18 @@ export async function getPlugById(
 export async function updatePlug(
   id: string,
   payload: Partial<CreatePlugPayload>,
-  token?: string | null
 ): Promise<IPlug> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data: PlugApiResponse = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to update plug.");
-  }
-
+  const { data } = await api.put<PlugApiResponse>(`/plugs/${id}`, payload);
   return data.data;
 }
 
 /**
  * TanStack Query hook to fetch the list of plugs
  */
-export const useGetPlugList = (token?: string | null) => {
+export const useGetPlugList = () => {
   return useQuery<IPlug[], Error>({
     queryKey: ["plugs"],
-    queryFn: () => getPlugList(token),
+    queryFn: () => getPlugList(),
   });
 };
 
@@ -131,10 +57,10 @@ export const useGetPlugs = useGetPlugList;
 /**
  * TanStack Query hook to fetch a single plug by ID
  */
-export const useGetPlugById = (plugId?: string, token?: string | null) => {
+export const useGetPlugById = (plugId?: string) => {
   return useQuery<IPlug, Error>({
     queryKey: ["plugs", plugId],
-    queryFn: () => getPlugById(plugId!, token),
+    queryFn: () => getPlugById(plugId!),
     enabled: Boolean(plugId),
   });
 };
@@ -179,26 +105,11 @@ export async function togglePlugOutlet(
   plugId: string,
   outlet: number,
   state: "on" | "off",
-  token?: string | null
 ): Promise<{ success: boolean; message: string }> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs/${plugId}/toggle`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: JSON.stringify({ outlet, state }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to toggle plug outlet.");
-  }
-
+  const { data } = await api.post<{ success: boolean; message: string }>(
+    `/plugs/${plugId}/toggle`,
+    { outlet, state },
+  );
   return data;
 }
 
@@ -227,24 +138,10 @@ export const useTogglePlugOutlet = () => {
  */
 export async function deletePlug(
   id: string,
-  token?: string | null
 ): Promise<{ success: boolean; message: string }> {
-  const authToken = token ?? (await getAuthSession())?.token;
-
-  const response = await fetch(`${API_BASE_URL}/plugs/${id}`, {
-    method: "DELETE",
-    headers: {
-      Accept: "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to delete plug.");
-  }
-
+  const { data } = await api.delete<{ success: boolean; message: string }>(
+    `/plugs/${id}`,
+  );
   return data;
 }
 

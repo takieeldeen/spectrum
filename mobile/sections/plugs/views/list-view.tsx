@@ -206,11 +206,7 @@ export const DUMMY_PLUGS: IPlug[] = [
    2. PLUGS LIST VIEW COMPONENT
    ========================================================================== */
 
-export function PlugsListView({
-  initialPlugs,
-}: {
-  initialPlugs?: IPlug[];
-}) {
+export function PlugsListView({ initialPlugs }: { initialPlugs?: IPlug[] }) {
   const router = useRouter();
   const theme = useTheme();
   const { t } = useTranslation();

@@ -22,8 +22,8 @@ import {
   ConfirmationMessage,
   useConfirmationMessage,
 } from "@/components/confirmation-message";
-import { usePairWithStrip } from "@/hooks/use-pair-with-strip";
 import { useTogglePlugOutlet, useDeletePlug } from "@/api/plug";
+import { OutletState, useControlStrip } from "@/hooks/use-control-strip";
 
 /* ==========================================================================
    1. TYPES & PROPS
@@ -109,7 +109,17 @@ export function PlugCard({
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
   const isDark = theme.isDark;
-
+  const {
+    liveData,
+    toggleOutlet,
+    toggleAllOutlet,
+    stripState,
+    connected: stripConnected,
+    isLoading: stripLoading,
+  } = useControlStrip({
+    stripId: plug?._id!,
+  });
+  const connected = !stripLoading && stripConnected;
   const popover = usePopover();
   const { showConfirmation, confirmationProps } = useConfirmationMessage();
   const deleteMutation = useDeletePlug();
@@ -163,125 +173,17 @@ export function PlugCard({
     });
   };
 
-  // Hook: Pair with strip over local Wi-Fi / TCP (port 10086)
-  const {
-    isConnected: isStripSocketConnected,
-    connectedStripIp,
-    outletStates: liveOutletStates,
-    outletDetails: liveOutletDetails,
-    telemetry: liveTelemetry,
-    toggleOutlet: toggleStripOutlet,
-    setAllOutlets: setAllStripOutlets,
-  } = usePairWithStrip({
-    targetStripIp: plug?.ipAddress,
-    autoStart: false,
-  });
-
-  const toggleMutation = useTogglePlugOutlet();
-
-  const isConnected =
-    isStripSocketConnected ||
-    Boolean(plug?.connected ?? plug?.isOnline ?? true);
-  // Local state for interactive outlets
-  const [outlets, setOutlets] = useState<{
-    outlet1: OutletProps;
-    outlet2: OutletProps;
-    outlet3: OutletProps;
-    outlet4: OutletProps;
-  }>(() => ({
-    outlet1: { ...DEFAULT_OUTLETS.outlet1, ...plug?.outlets?.outlet1 },
-    outlet2: { ...DEFAULT_OUTLETS.outlet2, ...plug?.outlets?.outlet2 },
-    outlet3: { ...DEFAULT_OUTLETS.outlet3, ...plug?.outlets?.outlet3 },
-    outlet4: { ...DEFAULT_OUTLETS.outlet4, ...plug?.outlets?.outlet4 },
-  }));
-
-  // Sync if plug.outlets changes
-  useEffect(() => {
-    if (plug?.outlets) {
-      setOutlets({
-        outlet1: { ...DEFAULT_OUTLETS.outlet1, ...plug.outlets.outlet1 },
-        outlet2: { ...DEFAULT_OUTLETS.outlet2, ...plug.outlets.outlet2 },
-        outlet3: { ...DEFAULT_OUTLETS.outlet3, ...plug.outlets.outlet3 },
-        outlet4: { ...DEFAULT_OUTLETS.outlet4, ...plug.outlets.outlet4 },
-      });
-    }
-  }, [plug?.outlets]);
-
-  // Sync incoming real-time socket states & telemetry from strip (explore.tsx logic)
-  useEffect(() => {
-    if (Object.keys(liveOutletStates).length > 0) {
-      setOutlets((prev) => ({
-        outlet1: {
-          ...prev.outlet1,
-          on: liveOutletStates[1] ?? prev.outlet1.on,
-          watts: liveOutletDetails?.[1]?.watts ?? prev.outlet1.watts,
-          power_mw: liveOutletDetails?.[1]?.power_mw ?? prev.outlet1.power_mw,
-          temperature_c:
-            liveOutletDetails?.[1]?.temperature_c ||
-            liveTelemetry.temperature ||
-            prev.outlet1.temperature_c,
-        },
-        outlet2: {
-          ...prev.outlet2,
-          on: liveOutletStates[2] ?? prev.outlet2.on,
-          watts: liveOutletDetails?.[2]?.watts ?? prev.outlet2.watts,
-          power_mw: liveOutletDetails?.[2]?.power_mw ?? prev.outlet2.power_mw,
-          temperature_c:
-            liveOutletDetails?.[2]?.temperature_c ||
-            liveTelemetry.temperature ||
-            prev.outlet2.temperature_c,
-        },
-        outlet3: {
-          ...prev.outlet3,
-          on: liveOutletStates[3] ?? prev.outlet3.on,
-          watts: liveOutletDetails?.[3]?.watts ?? prev.outlet3.watts,
-          power_mw: liveOutletDetails?.[3]?.power_mw ?? prev.outlet3.power_mw,
-          temperature_c:
-            liveOutletDetails?.[3]?.temperature_c ||
-            liveTelemetry.temperature ||
-            prev.outlet3.temperature_c,
-        },
-        outlet4: {
-          ...prev.outlet4,
-          on: liveOutletStates[4] ?? prev.outlet4.on,
-          watts: liveOutletDetails?.[4]?.watts ?? prev.outlet4.watts,
-          power_mw: liveOutletDetails?.[4]?.power_mw ?? prev.outlet4.power_mw,
-          temperature_c:
-            liveOutletDetails?.[4]?.temperature_c ||
-            liveTelemetry.temperature ||
-            prev.outlet4.temperature_c,
-        },
-      }));
-    }
-  }, [liveOutletStates, liveOutletDetails, liveTelemetry]);
-
-  // Outlets toggling (calls local TCP socket if available + cloud backend for 24/7 reliability)
+  // Outlets toggling (calls backend API which relays to strip via TCP)
   const handleToggleOutlet = async (
     key: "outlet1" | "outlet2" | "outlet3" | "outlet4",
   ) => {
     const portMap = { outlet1: 1, outlet2: 2, outlet3: 3, outlet4: 4 } as const;
     const outletNum = portMap[key];
-    const nextState = !outlets[key].on;
+    const nextState = !stripState?.[key].on;
 
-    // Optimistic UI update
-    setOutlets((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], on: nextState },
-    }));
-
-    // 1. Direct local TCP if strip is dialed into this phone
-    if (isStripSocketConnected) {
-      await toggleStripOutlet(outletNum, nextState);
-    }
-
-    // 2. Cloud backend API (where strip is dialed into 13.62.76.178:10086)
     if (plugId) {
       try {
-        await toggleMutation.mutateAsync({
-          plugId,
-          outlet: outletNum,
-          state: nextState ? "on" : "off",
-        });
+        toggleOutlet(nextState ? "on" : "off", outletNum);
       } catch (err) {
         console.warn("Cloud toggle failed:", err);
       }
@@ -291,30 +193,9 @@ export function PlugCard({
   };
 
   const handleToggleMaster = async () => {
-    const anyOn = Object.values(outlets).some((o) => o.on);
+    const anyOn = Object.values(stripState!).some((o) => o.on);
     const nextState = !anyOn;
-
-    setOutlets({
-      outlet1: { ...outlets.outlet1, on: nextState },
-      outlet2: { ...outlets.outlet2, on: nextState },
-      outlet3: { ...outlets.outlet3, on: nextState },
-      outlet4: { ...outlets.outlet4, on: nextState },
-    });
-
-    if (isStripSocketConnected) {
-      await setAllStripOutlets(nextState);
-    }
-
-    if (plugId) {
-      for (let i = 1; i <= 4; i++) {
-        toggleMutation.mutate({
-          plugId,
-          outlet: i,
-          state: nextState ? "on" : "off",
-        });
-      }
-    }
-
+    toggleAllOutlet();
     onToggleMaster?.(nextState);
   };
 
@@ -349,14 +230,13 @@ export function PlugCard({
       ],
     };
   });
-
   return (
     <>
       <Card
         style={[
           styles.cardContainer,
           {
-            backgroundColor: isDark ? theme.backgroundElement : "white",
+            // backgroundColor: isDark ? theme.backgroundElement : "white",
             borderColor: isDark ? theme.backgroundSelected : "rgba(0,0,0,0.06)",
           },
         ]}
@@ -365,45 +245,27 @@ export function PlugCard({
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
             <ThemedText style={styles.plugNameText}>{plugName}</ThemedText>
-            {isStripSocketConnected && liveTelemetry.voltage > 0 && (
-              <ThemedText
-                style={{
-                  fontSize: 12,
-                  color: theme.primary,
-                  fontWeight: "600",
-                  marginTop: 2,
-                }}
-              >
-                {liveTelemetry.voltage}V • {liveTelemetry.watts}W •{" "}
-                {liveTelemetry.temperature}°C
-              </ThemedText>
-            )}
           </View>
-
           <View style={styles.headerRight}>
             <View
               style={[
                 styles.connectedBadge,
-                isConnected ? styles.badgeOnline : styles.badgeOffline,
+                connected ? styles.badgeOnline : styles.badgeOffline,
               ]}
             >
               <View
                 style={[
                   styles.connectedDot,
-                  isConnected ? styles.dotOnline : styles.dotOffline,
+                  connected ? styles.dotOnline : styles.dotOffline,
                 ]}
               />
               <ThemedText
                 style={[
                   styles.connectedText,
-                  isConnected ? styles.textOnline : styles.textOffline,
+                  connected ? styles.textOnline : styles.textOffline,
                 ]}
               >
-                {isStripSocketConnected
-                  ? t("LAN_CONNECTED")
-                  : isConnected
-                    ? t("DASHBOARD.ONLINE")
-                    : t("DASHBOARD.OFFLINE")}
+                {connected ? t("DASHBOARD.ONLINE") : t("DASHBOARD.OFFLINE")}
               </ThemedText>
             </View>
 
@@ -426,242 +288,256 @@ export function PlugCard({
           </View>
         </View>
 
-      {/* 2. Electric Power Strip Visual */}
-      <ElectricPlug
-        disabled={!isConnected}
-        outlets={outlets}
-        onToggleOutlet={handleToggleOutlet}
-        onToggleMaster={handleToggleMaster}
-      />
+        {/* 2. Electric Power Strip Visual */}
+        <ElectricPlug
+          disabled={!connected}
+          outlets={stripState!}
+          onToggleOutlet={handleToggleOutlet}
+          onToggleMaster={handleToggleMaster}
+        />
 
-      {/* 3. Outlets Accordion (Smooth Reanimated Container) */}
-      <Animated.View
-        style={animatedAccordionStyle}
-        pointerEvents={isExpanded ? "auto" : "none"}
-      >
-        <View
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height;
-            if (h > 0) {
-              measuredHeight.value = h;
-            }
-          }}
-          style={styles.accordionInner}
+        {/* 3. Outlets Accordion (Smooth Reanimated Container) */}
+        <Animated.View
+          style={animatedAccordionStyle}
+          pointerEvents={isExpanded ? "auto" : "none"}
         >
-          <View style={styles.outletsColumn}>
-            {([1, 2, 3, 4] as const).map((num) => {
-              const outletKey = `outlet${num}` as keyof typeof outlets;
-              const outlet = outlets[outletKey];
-              const currentAmp =
-                outlet.on && outlet.watts
-                  ? (outlet.watts / 220).toFixed(2)
-                  : "0";
+          <View
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              if (h > 0) {
+                measuredHeight.value = h;
+              }
+            }}
+            style={styles.accordionInner}
+          >
+            <View style={styles.outletsColumn}>
+              {([1, 2, 3, 4] as const).map((num) => {
+                const outletKey = `outlet${num}` as
+                  | "outlet1"
+                  | "outlet2"
+                  | "outlet3"
+                  | "outlet4";
+                const outletLiveData = liveData?.outlets?.[outletKey];
 
-              return (
-                <View
-                  key={num}
-                  style={[
-                    styles.outletCard,
-                    {
-                      backgroundColor: isDark
-                        ? theme.backgroundSelected
-                        : "#F8FAFC",
-                      borderColor: isDark
-                        ? theme.backgroundSelected
-                        : "rgba(0,0,0,0.06)",
-                    },
-                  ]}
-                >
-                  {/* First Line: Outlet Socket, Name, and Switch */}
-                  <View style={styles.outletFirstLine}>
-                    <View style={styles.outletSocketSection}>
-                      <View style={styles.socketMiniWrapper}>
-                        <PlugSocket
-                          outlet={outlet}
-                          hideSwitch
-                          disabled={!isConnected}
-                        />
+                return (
+                  <View
+                    key={num}
+                    style={[
+                      styles.outletCard,
+                      {
+                        backgroundColor: theme.backgroundSecondary,
+                        borderColor: isDark
+                          ? theme.backgroundSelected
+                          : "rgba(0,0,0,0.06)",
+                      },
+                    ]}
+                  >
+                    {/* First Line: Outlet Socket, Name, and Switch */}
+                    <View style={styles.outletFirstLine}>
+                      <View style={styles.outletSocketSection}>
+                        <View style={styles.socketMiniWrapper}>
+                          <PlugSocket
+                            outlet={outletLiveData}
+                            hideSwitch
+                            disabled={!connected}
+                          />
+                        </View>
+                        <ThemedText style={styles.outletTitleText}>
+                          {t("OUTLET_NUMBER", { num })}
+                        </ThemedText>
                       </View>
-                      <ThemedText style={styles.outletTitleText}>
-                        {t("OUTLET_NUMBER", { num })}
-                      </ThemedText>
+
+                      <Switch
+                        disabled={!connected}
+                        value={outletLiveData?.on}
+                        onValueChange={() => handleToggleOutlet(outletKey)}
+                        trackColor={{
+                          false: isDark ? "#38383A" : "#D1D5DB",
+                          true: !connected
+                            ? isDark
+                              ? "#4B5563"
+                              : "#9CA3AF"
+                            : theme.primary,
+                        }}
+                        thumbColor={
+                          !connected
+                            ? isDark
+                              ? "#9CA3AF"
+                              : "#D1D5DB"
+                            : "#FFFFFF"
+                        }
+                      />
                     </View>
 
-                    <Switch
-                      disabled={!isConnected}
-                      value={outlet.on}
-                      onValueChange={() => handleToggleOutlet(outletKey)}
-                      trackColor={{
-                        false: isDark ? "#38383A" : "#D1D5DB",
-                        true: !isConnected
-                          ? isDark
-                            ? "#4B5563"
-                            : "#9CA3AF"
-                          : theme.primary,
-                      }}
-                      thumbColor={
-                        !isConnected
-                          ? isDark
-                            ? "#9CA3AF"
-                            : "#D1D5DB"
-                          : "#FFFFFF"
-                      }
-                    />
+                    {/* Second Line: Four Stat Cards Stacked in a Row */}
+                    <View style={styles.fourStatsRow}>
+                      {/* 1. Watts */}
+                      <View
+                        style={[
+                          styles.statCardBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : "rgba(0,0,0,0.03)",
+                            borderColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.05)",
+                          },
+                        ]}
+                      >
+                        <Lucide
+                          name="zap"
+                          size={15}
+                          color={
+                            outletLiveData?.on
+                              ? theme.primary
+                              : theme.textSecondary
+                          }
+                        />
+                        <ThemedText
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.75}
+                          style={[
+                            styles.statCardText,
+                            outletLiveData?.on && { color: theme.primary },
+                          ]}
+                        >
+                          {`${outletLiveData?.power_W?.toFixed(2) ?? 0} ${t("UNIT_WATT")}`}
+                        </ThemedText>
+                      </View>
+
+                      {/* 2. Milliwatts */}
+                      <View
+                        style={[
+                          styles.statCardBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : "rgba(0,0,0,0.03)",
+                            borderColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.05)",
+                          },
+                        ]}
+                      >
+                        <Lucide
+                          name="battery-charging"
+                          size={15}
+                          color={
+                            outletLiveData?.on
+                              ? theme.primary
+                              : theme.textSecondary
+                          }
+                        />
+                        <ThemedText
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.75}
+                          style={[
+                            styles.statCardText,
+                            outletLiveData?.on && { color: theme.primary },
+                          ]}
+                        >
+                          {`${liveData?.voltage?.toFixed(0) ?? 0} ${t("VOLT")}`}
+                        </ThemedText>
+                      </View>
+
+                      {/* 3. Current in Amperes */}
+                      <View
+                        style={[
+                          styles.statCardBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : "rgba(0,0,0,0.03)",
+                            borderColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.05)",
+                          },
+                        ]}
+                      >
+                        <Lucide
+                          name="activity"
+                          size={15}
+                          color={
+                            outletLiveData?.on
+                              ? theme.primary
+                              : theme.textSecondary
+                          }
+                        />
+                        <ThemedText
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.75}
+                          style={[
+                            styles.statCardText,
+                            outletLiveData?.on && { color: theme.primary },
+                          ]}
+                        >
+                          {`${outletLiveData?.current_A?.toFixed(2) ?? 0} ${t("UNIT_AMPERE")}`}
+                        </ThemedText>
+                      </View>
+
+                      {/* 4. Temperature */}
+                      <View
+                        style={[
+                          styles.statCardBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : "rgba(0,0,0,0.03)",
+                            borderColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.05)",
+                          },
+                        ]}
+                      >
+                        <Lucide
+                          name="thermometer"
+                          size={15}
+                          color={
+                            outletLiveData?.on
+                              ? theme.primary
+                              : theme.textSecondary
+                          }
+                        />
+                        <ThemedText
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.75}
+                          style={[
+                            styles.statCardText,
+                            outletLiveData?.on && { color: theme.primary },
+                          ]}
+                        >
+                          {`${outletLiveData?.temperature_c ?? (outletLiveData?.on ? 32 : 24)}${t("UNIT_CELSIUS")}`}
+                        </ThemedText>
+                      </View>
+                    </View>
                   </View>
-
-                  {/* Second Line: Four Stat Cards Stacked in a Row */}
-                  <View style={styles.fourStatsRow}>
-                    {/* 1. Watts */}
-                    <View
-                      style={[
-                        styles.statCardBox,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : "rgba(0,0,0,0.03)",
-                          borderColor: isDark
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(0,0,0,0.05)",
-                        },
-                      ]}
-                    >
-                      <Lucide
-                        name="zap"
-                        size={15}
-                        color={outlet.on ? theme.primary : theme.textSecondary}
-                      />
-                      <ThemedText
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.75}
-                        style={[
-                          styles.statCardText,
-                          outlet.on && { color: theme.primary },
-                        ]}
-                      >
-                        {`${outlet.watts ?? 0} ${t("UNIT_WATT")}`}
-                      </ThemedText>
-                    </View>
-
-                    {/* 2. Milliwatts */}
-                    <View
-                      style={[
-                        styles.statCardBox,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : "rgba(0,0,0,0.03)",
-                          borderColor: isDark
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(0,0,0,0.05)",
-                        },
-                      ]}
-                    >
-                      <Lucide
-                        name="battery-charging"
-                        size={15}
-                        color={outlet.on ? theme.primary : theme.textSecondary}
-                      />
-                      <ThemedText
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.75}
-                        style={[
-                          styles.statCardText,
-                          outlet.on && { color: theme.primary },
-                        ]}
-                      >
-                        {`${outlet.power_mw ?? 0} ${t("UNIT_MILLIWATT")}`}
-                      </ThemedText>
-                    </View>
-
-                    {/* 3. Current in Amperes */}
-                    <View
-                      style={[
-                        styles.statCardBox,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : "rgba(0,0,0,0.03)",
-                          borderColor: isDark
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(0,0,0,0.05)",
-                        },
-                      ]}
-                    >
-                      <Lucide
-                        name="activity"
-                        size={15}
-                        color={outlet.on ? theme.primary : theme.textSecondary}
-                      />
-                      <ThemedText
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.75}
-                        style={[
-                          styles.statCardText,
-                          outlet.on && { color: theme.primary },
-                        ]}
-                      >
-                        {`${currentAmp} ${t("UNIT_AMPERE")}`}
-                      </ThemedText>
-                    </View>
-
-                    {/* 4. Temperature */}
-                    <View
-                      style={[
-                        styles.statCardBox,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : "rgba(0,0,0,0.03)",
-                          borderColor: isDark
-                            ? "rgba(255,255,255,0.08)"
-                            : "rgba(0,0,0,0.05)",
-                        },
-                      ]}
-                    >
-                      <Lucide
-                        name="thermometer"
-                        size={15}
-                        color={outlet.on ? theme.primary : theme.textSecondary}
-                      />
-                      <ThemedText
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.75}
-                        style={[
-                          styles.statCardText,
-                          outlet.on && { color: theme.primary },
-                        ]}
-                      >
-                        {`${outlet.temperature_c ?? (outlet.on ? 32 : 24)}${t("UNIT_CELSIUS")}`}
-                      </ThemedText>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
 
-      {/* 4. Accordion Toggle Button */}
-      <Button
-        variant="soft"
-        color="primary"
-        size="medium"
-        fullWidth
-        onPress={toggleExpanded}
-        style={styles.showMoreButton}
-        endIcon={
-          <Animated.View style={chevronAnimatedStyle}>
-            <Lucide name="chevron-down" size={18} color={theme.primary} />
-          </Animated.View>
-        }
-      >
-        {isExpanded ? t("SHOW_LESS") : t("SHOW_MORE")}
-      </Button>
+        {/* 4. Accordion Toggle Button */}
+        <Button
+          variant="soft"
+          color="primary"
+          size="medium"
+          fullWidth
+          onPress={toggleExpanded}
+          style={styles.showMoreButton}
+          endIcon={
+            <Animated.View style={chevronAnimatedStyle}>
+              <Lucide name="chevron-down" size={18} color={theme.primary} />
+            </Animated.View>
+          }
+        >
+          {isExpanded ? t("SHOW_LESS") : t("SHOW_MORE")}
+        </Button>
       </Card>
 
       {/* Popover Action Menu */}

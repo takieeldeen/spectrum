@@ -15,15 +15,26 @@ export const Colors = {
     backgroundElement: "#F0F0F3",
     backgroundSelected: "#E0E1E6",
     textSecondary: "#60646C",
+    backgroundSecondary: "#f1eeeeff",
+    socketInnerBackground: "#F3F4F6",
+    primaryDark: "#0A7A55",
     primary: "#059669",
+    primaryLight: "#13a375ff",
+    primaryLighter: "#2aae84ff",
   },
   dark: {
     text: "#ffffff",
     background: "#111E23",
-    backgroundElement: "#212225",
+    backgroundElement: "#18262F",
     backgroundSelected: "#2E3135",
     textSecondary: "#B0B4BA",
+    primaryDark: "#0A7A55",
     primary: "#059669",
+    primaryLight: "#13a375ff",
+    primaryLighter: "#2aae84ff",
+
+    backgroundSecondary: "#1C2E38",
+    socketInnerBackground: "#111E23",
   },
 } as const;
 
