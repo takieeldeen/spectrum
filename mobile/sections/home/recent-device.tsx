@@ -16,6 +16,7 @@ import Animated, {
   interpolateColor,
   Easing,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 
 import ThemedText from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
@@ -32,23 +33,6 @@ interface DeviceItemDisplay {
   stripId?: string;
   port?: number;
 }
-
-const DEFAULT_SAMPLE_DEVICES: DeviceItemDisplay[] = [
-  {
-    id: "sample-1",
-    name: "راديو البلكونة",
-    subtitle: "مخرج 3 · يعمل حالياً",
-    watts: 6.06,
-    isOn: true,
-  },
-  {
-    id: "sample-2",
-    name: "الراوتر",
-    subtitle: "الصالة · مخرج 4 · يعمل حالياً",
-    watts: 0.56,
-    isOn: true,
-  },
-];
 
 const TRANSITION_DURATION = 350; // Smooth transition duration in ms
 
@@ -73,6 +57,7 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
   isRtl,
   styles,
 }) => {
+  const { t } = useTranslation();
   const isDark = theme.isDark;
 
   // Shared progress value: 1 for ON, 0 for OFF
@@ -128,10 +113,7 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
     const backgroundColor = interpolateColor(
       progress.value,
       [0, 1],
-      [
-        isDark ? "rgba(255, 255, 255, 0.12)" : "#E2E8F0",
-        "#0A7A55",
-      ],
+      [isDark ? "rgba(255, 255, 255, 0.12)" : "#E2E8F0", "#0A7A55"],
     );
     return {
       backgroundColor,
@@ -183,7 +165,9 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
           <ThemedText style={styles.powerValue}>
             {item.isOn ? item.watts.toFixed(2) : "0.00"}
           </ThemedText>
-          <ThemedText style={styles.powerUnit}>واط</ThemedText>
+          <ThemedText style={styles.powerUnit}>
+            {t("DASHBOARD.WATT")}
+          </ThemedText>
         </Animated.View>
 
         <Pressable
@@ -191,7 +175,7 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
           style={({ pressed }) => [
             pressed && { opacity: 0.85, transform: [{ scale: 0.95 }] },
           ]}
-          accessibilityLabel="تبديل الطاقة"
+          accessibilityLabel={t("DASHBOARD.TOGGLE_POWER")}
         >
           <Animated.View style={[styles.powerButton, animatedButtonStyle]}>
             <View style={styles.iconCenterWrapper}>
@@ -203,11 +187,7 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
               <Animated.View
                 style={[styles.iconAbsolute, animatedInactiveIconStyle]}
               >
-                <Lucide
-                  name="power"
-                  size={19}
-                  color={theme.textSecondary}
-                />
+                <Lucide name="power" size={19} color={theme.textSecondary} />
               </Animated.View>
             </View>
           </Animated.View>
@@ -218,9 +198,11 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
 };
 
 export const RecentDevices: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
-  const isRtl = I18nManager.isRTL;
+  const isArabic = (i18n.language || "ar").startsWith("ar");
+  const isRtl = I18nManager.isRTL || isArabic;
   const { data: apiDevices } = useGetDevices();
   const { liveData, connected, sendOrder } = usePlugs();
 
@@ -248,17 +230,23 @@ export const RecentDevices: React.FC = () => {
 
         const stripName =
           typeof device.plugId === "object" && device.plugId
-            ? device.plugId.arabicName || device.plugId.name
+            ? (isArabic ? device.plugId.arabicName : device.plugId.name) ||
+              device.plugId.name ||
+              device.plugId.arabicName
             : "";
 
         const locationPart = stripName ? `${stripName} · ` : "";
-        const portPart = port ? `مخرج ${port}` : "غير معين";
-        const statusPart = isOn ? "يعمل حالياً" : "متوقف";
+        const portPart = port
+          ? t("DASHBOARD.OUTLET_NUMBER", { number: port })
+          : t("DASHBOARD.UNASSIGNED");
+        const statusPart = isOn
+          ? t("DASHBOARD.RUNNING_NOW")
+          : t("DASHBOARD.STOPPED");
         const subtitle = `${locationPart}${portPart} · ${statusPart}`;
 
         return {
           id: device._id,
-          name: device.nameAr || device.nameEn || "جهاز غير مسمى",
+          name: device.name || t("DASHBOARD.UNNAMED_DEVICE"),
           subtitle,
           watts,
           isOn,
@@ -271,20 +259,41 @@ export const RecentDevices: React.FC = () => {
     }
 
     // Default sample devices matching the design
-    return DEFAULT_SAMPLE_DEVICES.map((d) => {
-      const isOn = localToggles[d.id] ?? d.isOn;
-      const statusPart = isOn ? "يعمل حالياً" : "متوقف";
-      const basePrefix = d.subtitle.split("·")[0].trim();
-      const portPrefix = d.subtitle.includes("الصالة")
-        ? "الصالة · مخرج 4"
-        : "مخرج 3";
+    const sampleDevices = [
+      {
+        id: "sample-1",
+        name: t("DASHBOARD.BALCONY_RADIO"),
+        portNumber: 3,
+        location: "",
+        watts: 6.06,
+        defaultOn: true,
+      },
+      {
+        id: "sample-2",
+        name: t("DASHBOARD.ROUTER"),
+        portNumber: 4,
+        location: t("DASHBOARD.LIVING_ROOM"),
+        watts: 0.56,
+        defaultOn: true,
+      },
+    ];
+
+    return sampleDevices.map((d) => {
+      const isOn = localToggles[d.id] ?? d.defaultOn;
+      const statusPart = isOn
+        ? t("DASHBOARD.RUNNING_NOW")
+        : t("DASHBOARD.STOPPED");
+      const locationPart = d.location ? `${d.location} · ` : "";
+      const portPart = t("DASHBOARD.OUTLET_NUMBER", { number: d.portNumber });
       return {
-        ...d,
+        id: d.id,
+        name: d.name,
         isOn,
-        subtitle: `${portPrefix} · ${statusPart}`,
+        watts: d.watts,
+        subtitle: `${locationPart}${portPart} · ${statusPart}`,
       };
     });
-  }, [apiDevices, liveData, localToggles]);
+  }, [apiDevices, liveData, localToggles, t, isArabic]);
 
   const handleToggle = (item: DeviceItemDisplay) => {
     const nextState = !item.isOn;
@@ -306,13 +315,18 @@ export const RecentDevices: React.FC = () => {
     }
   };
 
-  const styles = useMemo(() => createStyles(theme, isRtl), [theme, isRtl]);
+  const styles = useMemo(
+    () => createStyles(theme, isRtl, isArabic),
+    [theme, isRtl, isArabic],
+  );
 
   return (
     <View style={styles.container}>
-      {/* Header: Title on the right, "See All" with chevron on the left */}
+      {/* Header: Title on one side, "See All" with chevron on the other side */}
       <View style={styles.headerRow}>
-        <ThemedText style={styles.headerTitle}>الأجهزة النشطة</ThemedText>
+        <ThemedText style={styles.headerTitle}>
+          {t("DASHBOARD.ACTIVE_DEVICES")}
+        </ThemedText>
         <Pressable
           onPress={handleNavigateToAll}
           style={({ pressed }) => [
@@ -320,8 +334,14 @@ export const RecentDevices: React.FC = () => {
             pressed && { opacity: 0.7 },
           ]}
         >
-          <ThemedText style={styles.seeAllText}>مشاهدة الكل</ThemedText>
-          <Lucide name="chevron-left" size={17} color="#0A7A55" />
+          <ThemedText style={styles.seeAllText}>
+            {t("DASHBOARD.SEE_ALL")}
+          </ThemedText>
+          <Lucide
+            name={isRtl ? "chevron-left" : "chevron-right"}
+            size={17}
+            color="#0A7A55"
+          />
         </Pressable>
       </View>
 
@@ -347,8 +367,16 @@ export default RecentDevices;
 const createStyles = (
   theme: ReturnType<typeof useTheme>,
   isRtl: boolean,
+  isArabic: boolean,
 ) => {
   const isDark = theme.isDark;
+  const naturalRow = isArabic
+    ? I18nManager.isRTL
+      ? "row"
+      : "row-reverse"
+    : I18nManager.isRTL
+      ? "row-reverse"
+      : "row";
 
   return StyleSheet.create({
     container: {
@@ -356,7 +384,7 @@ const createStyles = (
       width: "100%",
     },
     headerRow: {
-      flexDirection: isRtl ? "row" : "row-reverse",
+      flexDirection: naturalRow,
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 4,
@@ -366,10 +394,10 @@ const createStyles = (
       lineHeight: 26,
       fontWeight: "800",
       color: theme.text,
-      textAlign: isRtl ? "left" : "right",
+      textAlign: isRtl ? "right" : "left",
     },
     seeAllButton: {
-      flexDirection: isRtl ? "row-reverse" : "row",
+      flexDirection: naturalRow,
       alignItems: "center",
       gap: 3,
       paddingVertical: 4,
@@ -390,10 +418,8 @@ const createStyles = (
       paddingHorizontal: 16,
       paddingVertical: 13,
       borderWidth: 1,
-      borderColor: isDark
-        ? "rgba(255, 255, 255, 0.08)"
-        : "rgba(0, 0, 0, 0.04)",
-      flexDirection: isRtl ? "row" : "row-reverse",
+      borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+      flexDirection: naturalRow,
       alignItems: "center",
       justifyContent: "space-between",
       ...Platform.select({
@@ -409,7 +435,7 @@ const createStyles = (
       }),
     },
     rightGroup: {
-      flexDirection: isRtl ? "row" : "row-reverse",
+      flexDirection: naturalRow,
       alignItems: "center",
       gap: 12,
       flex: 1,
@@ -439,7 +465,7 @@ const createStyles = (
     },
     deviceInfo: {
       flex: 1,
-      alignItems: isRtl ? "flex-start" : "flex-end",
+      alignItems: "flex-start",
       justifyContent: "center",
     },
     deviceName: {
@@ -447,7 +473,7 @@ const createStyles = (
       lineHeight: 22,
       fontWeight: "800",
       color: theme.text,
-      textAlign: isRtl ? "left" : "right",
+      textAlign: isRtl ? "right" : "left",
     },
     deviceSubtitle: {
       fontSize: 12.5,
@@ -455,10 +481,10 @@ const createStyles = (
       fontWeight: "500",
       color: theme.textSecondary,
       marginTop: 2,
-      textAlign: isRtl ? "left" : "right",
+      textAlign: isRtl ? "right" : "left",
     },
     leftGroup: {
-      flexDirection: isRtl ? "row" : "row-reverse",
+      flexDirection: naturalRow,
       alignItems: "center",
       gap: 12,
       marginStart: 12,

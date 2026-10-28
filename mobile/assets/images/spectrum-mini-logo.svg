@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 120 120" fill="none">
+  <title>spectrum app icon</title>
+  <rect width="120" height="120" rx="30" fill="#0B7A55"/>
+  <g transform="translate(60 60) scale(1.22) translate(-60 -60)">
+    <rect x="40" y="36" width="10" height="26" rx="5" fill="#FFFFFF"/>
+    <rect x="70" y="36" width="10" height="26" rx="5" fill="#FFFFFF"/>
+    <circle cx="60" cy="84" r="7" fill="#FFFFFF"/>
+  </g>
+</svg>

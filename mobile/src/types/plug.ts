@@ -15,6 +15,10 @@ export interface IPlug {
   createdAt?: string;
   updatedAt?: string;
   outlets?: Record<string, any>;
+  device1?: string;
+  device2?: string;
+  device3?: string;
+  device4?: string;
 }
 
 export interface CreatePlugPayload {

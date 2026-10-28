@@ -4,7 +4,7 @@ export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'SUSPENDED';
 
 export type UserLanguage = 'ar' | 'en';
 
-export type UserTheme = 'dark' | 'light';
+export type UserTheme = 'dark' | 'light' | 'system';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -20,6 +20,11 @@ export interface IUser extends Document {
   activationToken?: string | null;
   activationTokenExpiration?: Date | null;
   lastLogin?: Date | null;
+  kwhCost?: number;
+  monthlyBudget?: number;
+  overBudgetAlertEnabled?: boolean;
+  budgetAlertPercent?: number;
+  powerUnit?: 'W' | 'kW';
   createdAt?: Date;
   updatedAt?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;

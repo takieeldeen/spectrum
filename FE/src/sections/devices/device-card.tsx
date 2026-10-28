@@ -31,6 +31,7 @@ import { useDeleteDevice, useToggleDevice } from 'src/api/device';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 import { usePlugSocket } from 'src/hooks/use-plug-socket';
+import DeviceTimerButton from './device-timer-button';
 
 type DeviceCardProps = {
   device: IDevice;
@@ -58,12 +59,7 @@ function DeviceCard({ device }: DeviceCardProps) {
     severity: 'success',
   });
 
-  const deviceName =
-    i18n.language === 'ar'
-      ? device?.nameAr !== ''
-        ? device?.nameAr
-        : device?.nameEn
-      : device?.nameEn;
+  const deviceName = device?.name;
 
   const handleDeleteClick = () => {
     popover.onClose();
@@ -261,6 +257,12 @@ function DeviceCard({ device }: DeviceCardProps) {
           >
             تفاصيل
           </Button>
+
+          <DeviceTimerButton
+            deviceId={device._id}
+            deviceName={device.name}
+            timerClosesAt={device.timerClosesAt}
+          />
         </Stack>
       </Card>
 

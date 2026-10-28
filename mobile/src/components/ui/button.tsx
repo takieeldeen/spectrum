@@ -285,8 +285,7 @@ export function Button({
         containerStyle,
         {
           borderRadius,
-          direction: isArabic ? "rtl" : "ltr",
-          flexDirection: isArabic ? "row-reverse" : "row",
+          flexDirection: "row",
         },
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
@@ -310,6 +309,7 @@ export function Button({
       ) : typeof children === "string" ? (
         <ThemedText
           weight="600"
+          numberOfLines={1}
           style={[
             styles.label,
             {
@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
   label: {
     textAlign: "center",
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   disabled: {
     opacity: 0.45,

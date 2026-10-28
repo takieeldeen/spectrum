@@ -8,7 +8,15 @@ export class DeviceService {
    * @returns The created device entity
    */
   async createDevice(data: Partial<IDevice>): Promise<IDevice> {
-    return await DeviceModel.create(data);
+    if (data.plugId && data.plugPort) {
+      await DeviceModel.updateMany(
+        { plugId: data.plugId, plugPort: data.plugPort },
+        { $set: { plugId: null, plugPort: null } }
+      );
+    }
+    const created = await DeviceModel.create(data);
+    const populated = await DeviceModel.findById(created._id).populate('plugId', 'name arabicName');
+    return (populated || created) as IDevice;
   }
 
   /**
@@ -38,6 +46,25 @@ export class DeviceService {
    */
   async getDeviceById(id: string): Promise<IDevice | null> {
     return await DeviceModel.findById(id).populate('plugId', 'name arabicName');
+  }
+
+  /**
+   * Updates an existing Device entity in the database
+   * @param id The ID of the device to update
+   * @param data The updated data
+   * @returns The updated device entity
+   */
+  async updateDevice(id: string, data: Partial<IDevice>): Promise<IDevice | null> {
+    if (data.plugId && data.plugPort) {
+      await DeviceModel.updateMany(
+        { _id: { $ne: id }, plugId: data.plugId, plugPort: data.plugPort },
+        { $set: { plugId: null, plugPort: null } }
+      );
+    } else if ("plugId" in data && !data.plugId) {
+      data.plugId = null as any;
+      data.plugPort = null as any;
+    }
+    return await DeviceModel.findByIdAndUpdate(id, data, { new: true }).populate('plugId', 'name arabicName');
   }
 
   /**
@@ -76,6 +103,59 @@ export class DeviceService {
 
     return device;
   }
+
+  /**
+   * Sets a sleep timer on a device. Allowed durations:
+   * 1 (testing), 15, 30, 60, 120, 240, or 480 minutes.
+   * @param deviceId ID of the device
+   * @param durationMins Duration in minutes
+   * @returns Updated device
+   */
+  async setTimer(deviceId: string, durationMins: number): Promise<IDevice | null> {
+    const { ALLOWED_TIMER_DURATIONS } = await import('./timer.service');
+
+    if (!(ALLOWED_TIMER_DURATIONS as readonly number[]).includes(durationMins)) {
+      throw new Error(
+        `Invalid duration. Allowed values are: ${ALLOWED_TIMER_DURATIONS.join(', ')} minutes.`
+      );
+    }
+
+    const device = await DeviceModel.findById(deviceId);
+    if (!device) throw new Error('Device not found');
+    if (!device.plugId || !device.plugPort) {
+      throw new Error('Device is not assigned to any plug or port');
+    }
+
+    const closesAt = new Date(Date.now() + durationMins * 60_000);
+    device.timerClosesAt = closesAt;
+    device.timerDurationMins = durationMins;
+    await device.save();
+
+    // Force immediate registry sync so the timer is active straight away
+    const timerService = (await import('./timer.service')).default;
+    timerService.invalidate();
+
+    return device;
+  }
+
+  /**
+   * Cancels any active sleep timer on a device.
+   * @param deviceId ID of the device
+   * @returns Updated device
+   */
+  async cancelTimer(deviceId: string): Promise<IDevice | null> {
+    const device = await DeviceModel.findByIdAndUpdate(
+      deviceId,
+      { timerClosesAt: null, timerDurationMins: null },
+      { new: true }
+    );
+
+    const timerService = (await import('./timer.service')).default;
+    timerService.invalidate();
+
+    return device;
+  }
 }
 
 export default new DeviceService();
+

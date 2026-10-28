@@ -111,24 +111,20 @@ export function usePopover(): UsePopoverReturn {
   const onOpen = useCallback((targetOrEvent?: any) => {
     const target =
       anchorRef.current ||
-      (targetOrEvent?.currentTarget && typeof targetOrEvent.currentTarget.measureInWindow === "function"
+      (targetOrEvent?.currentTarget &&
+      typeof targetOrEvent.currentTarget.measureInWindow === "function"
         ? targetOrEvent.currentTarget
         : null);
 
-    console.log("🎯 ON_OPEN CALLED:", {
-      hasAnchorRef: !!anchorRef.current,
-      hasTarget: !!target,
-      hasMeasure: typeof target?.measureInWindow,
-    });
-
     if (target && typeof target.measureInWindow === "function") {
-      target.measureInWindow((x: number, y: number, width: number, height: number) => {
-        const measured = { x, y, width, height };
-        console.log("🎯 MEASURED IN WINDOW:", measured);
-        (anchorRef as any).currentRect = measured;
-        setAnchorRect(measured);
-        setOpen(true);
-      });
+      target.measureInWindow(
+        (x: number, y: number, width: number, height: number) => {
+          const measured = { x, y, width, height };
+          (anchorRef as any).currentRect = measured;
+          setAnchorRect(measured);
+          setOpen(true);
+        },
+      );
     } else {
       console.log("🎯 MEASURE FAILED OR NO TARGET");
       setOpen(true);
@@ -169,9 +165,12 @@ export function Popover({
   const isDark = theme.isDark;
 
   const [measuredRect, setMeasuredRect] = useState<AnchorRect | null>(
-    propAnchorRect ?? (anchorRef as any)?.currentRect ?? null
+    propAnchorRect ?? (anchorRef as any)?.currentRect ?? null,
   );
-  const [contentSize, setContentSize] = useState<{ width: number; height: number }>({
+  const [contentSize, setContentSize] = useState<{
+    width: number;
+    height: number;
+  }>({
     width: 170,
     height: 90,
   });
@@ -187,7 +186,11 @@ export function Popover({
 
   // Measure anchorRef on open if not already measured
   useEffect(() => {
-    if (open && anchorRef?.current && typeof anchorRef.current.measureInWindow === "function") {
+    if (
+      open &&
+      anchorRef?.current &&
+      typeof anchorRef.current.measureInWindow === "function"
+    ) {
       anchorRef.current.measureInWindow((x, y, width, height) => {
         if (width > 0 && height > 0) {
           const rect = { x, y, width, height };
@@ -214,8 +217,7 @@ export function Popover({
   /* ------------------------------------------------------------------------
      CALCULATE POSITION & CLAMP TO SCREEN BOUNDS
      ------------------------------------------------------------------------ */
-  const rect =
-    measuredRect ||
+  const rect = measuredRect ||
     propAnchorRect ||
     (anchorRef as any)?.currentRect || {
       x: isArabic ? 24 : screenWidth - 64,
@@ -271,16 +273,20 @@ export function Popover({
     left = rect.x;
   }
 
-
-
   // Clamp horizontal coordinate inside visible screen
-  const clampedPhysicalLeft = Math.max(12, Math.min(left, screenWidth - contentSize.width - 12));
+  const clampedPhysicalLeft = Math.max(
+    12,
+    Math.min(left, screenWidth - contentSize.width - 12),
+  );
 
   // Arrow position relative to physical popover left edge
   const anchorCenterX = rect.x + rect.width / 2;
   const rawArrowLeft = Math.max(
     14,
-    Math.min(anchorCenterX - clampedPhysicalLeft - arrowSize / 2, contentSize.width - arrowSize - 14)
+    Math.min(
+      anchorCenterX - clampedPhysicalLeft - arrowSize / 2,
+      contentSize.width - arrowSize - 14,
+    ),
   );
 
   // In Android with I18nManager.isRTL = true, native ReactViewGroup mirrors `left` and `right`.

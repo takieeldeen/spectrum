@@ -5,10 +5,13 @@ import { Pressable, I18nManager } from "react-native";
 import { Lucide } from "@react-native-vector-icons/lucide";
 import { getAppFont } from "@/constants/fonts";
 
+import { useGetUnreadNotificationsCount } from "@/api/notifications";
+
 export default function AppTabs() {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? false;
+  const { data: unreadCount } = useGetUnreadNotificationsCount();
 
   // If native I18nManager.isRTL has not taken effect in this session,
   // manually reverse tab order so reading flow is Right-to-Left (Profile on right, Plugs on left)
@@ -19,6 +22,7 @@ export default function AppTabs() {
       key="profile"
       name="profile"
       options={{
+        headerShown: false,
         title: t("NAVBAR.PROFILE"),
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarActiveTintColor: theme.primary,
@@ -31,9 +35,22 @@ export default function AppTabs() {
       key="notifications"
       name="notifications"
       options={{
-        title: "Notifications",
+        headerShown: false,
+        title: t("NOTIFICATIONS.PAGE_TITLE"),
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarActiveTintColor: theme.primary,
+        tabBarBadge:
+          unreadCount && unreadCount > 0
+            ? unreadCount > 99
+              ? "99+"
+              : unreadCount
+            : undefined,
+        tabBarBadgeStyle: {
+          backgroundColor: theme.logoutText,
+          color: "#FFFFFF",
+          fontSize: 10,
+          fontWeight: "700",
+        },
         tabBarIcon: ({ color, size }) => (
           <Lucide name="bell" color={color} size={size} />
         ),

@@ -1,4 +1,3 @@
-// PlugsProvider.tsx
 import {
   createContext,
   useContext,
@@ -8,10 +7,15 @@ import {
   useState,
 } from "react";
 import { io, Socket } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { SOCKET_URL } from "@/constants/api";
 import { useGetPlugList } from "@/api";
 import { OutletData, PlugData } from "@/hooks/use-control-strip";
 import { useAuth } from "@/context/auth-context";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { normalizeNotification } from "@/utils/notification-normalizer";
+import { INotificationItem } from "@/types/notifications";
 
 type PlugsContextValue = {
   liveData: Record<string, PlugData>;
@@ -26,6 +30,12 @@ const PlugsContext = createContext<PlugsContextValue | null>(null);
 export function PlugsProvider({ children }: { children: React.ReactNode }) {
   const { data: plugs } = useGetPlugList();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
+  const snackbar = useSnackbar();
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const [liveData, setLiveData] = useState<Record<string, PlugData>>({});
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
@@ -52,10 +62,69 @@ export function PlugsProvider({ children }: { children: React.ReactNode }) {
       setLiveData((prev) => ({ ...prev, [d.plugId]: d })),
     );
 
+    // Listen for real-time notifications
+    socket.on("notification", (rawItem: INotificationItem) => {
+      console.log("🔔 Real-time notification received via socket:", rawItem);
+      const normalized = normalizeNotification(rawItem, tRef.current);
+
+      // In-app alert banner
+      snackbar.warning(`${normalized.title}: ${normalized.body}`, {
+        autoHideDuration: 6000,
+        position: "top",
+      });
+
+      // Optimistically prepend to TanStack Query cache
+      queryClient.setQueriesData({ queryKey: ["notifications", "list"] }, (oldData: any) => {
+        if (!oldData || !oldData.pages || oldData.pages.length === 0) {
+          return {
+            pages: [
+              {
+                success: true,
+                items: [rawItem],
+                total: 1,
+                page: 1,
+                totalPages: 1,
+                hasMore: false,
+              },
+            ],
+            pageParams: [1],
+          };
+        }
+
+        const newPages = [...oldData.pages];
+        const firstPage = newPages[0];
+        // Deduplicate
+        if (firstPage.items && firstPage.items.some((i: any) => i._id === rawItem._id)) {
+          return oldData;
+        }
+
+        newPages[0] = {
+          ...firstPage,
+          items: [rawItem, ...(firstPage.items || [])],
+          total: (firstPage.total || 0) + 1,
+        };
+
+        return {
+          ...oldData,
+          pages: newPages,
+        };
+      });
+
+      // Background refetch invalidation
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "list"],
+        refetchType: "active",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "unread-count"],
+        refetchType: "active",
+      });
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [token]);
 
   // 2. join every plug (again after each reconnect)
   useEffect(() => {

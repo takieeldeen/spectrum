@@ -1,12 +1,8 @@
-import { View, Text } from "react-native";
 import React from "react";
+import NotificationsListView from "../../../sections/notifications/views/list-view";
 
 const NotificationsPage = () => {
-  return (
-    <View>
-      <Text>NotificationsPage</Text>
-    </View>
-  );
+  return <NotificationsListView />;
 };
 
 export default NotificationsPage;

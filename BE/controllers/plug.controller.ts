@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import plugService from "../services/plug.service";
+import wifiService from "../services/wifi.service";
 
 export class PlugController {
   /**
@@ -16,6 +17,18 @@ export class PlugController {
       }
 
       const { device1, device2, device3, device4, ...plugData } = req.body;
+
+      // If wifiPassword not explicitly provided but SSID is, look up saved Wi-Fi credentials
+      if (!plugData.wifiPassword && plugData.SSID) {
+        const savedWifi = await wifiService.getWifiWithPassword(
+          userId,
+          plugData.SSID
+        );
+        if (savedWifi?.password) {
+          plugData.wifiPassword = savedWifi.password;
+        }
+      }
+
       const newPlug = await plugService.createPlug({
         ...plugData,
         user: userId,
@@ -55,6 +68,18 @@ export class PlugController {
 
       const { id } = req.params;
       const { device1, device2, device3, device4, ...plugData } = req.body;
+
+      // If wifiPassword not explicitly provided but SSID is, look up saved Wi-Fi credentials
+      if (!plugData.wifiPassword && plugData.SSID) {
+        const savedWifi = await wifiService.getWifiWithPassword(
+          userId,
+          plugData.SSID
+        );
+        if (savedWifi?.password) {
+          plugData.wifiPassword = savedWifi.password;
+        }
+      }
+
       const updatedPlug = await plugService.updatePlug(id, plugData, userId);
 
       if (!updatedPlug) {
@@ -163,6 +188,7 @@ export class PlugController {
         : hardwareService.getStripIpByPlugId(plugId);
 
       const plugObj = (plug as any).toObject ? (plug as any).toObject() : { ...plug };
+      const assignedDevices = await plugService.getAssignedDevicesForPlug(plugId);
 
       return res.status(200).json({
         success: true,
@@ -171,6 +197,7 @@ export class PlugController {
           connected: isConnected,
           isOnline: isConnected,
           ipAddress: stripIp || undefined,
+          ...assignedDevices,
         },
       });
     } catch (error: any) {

@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import deviceService from '../services/device.service';
+import { Request, Response } from "express";
+import deviceService from "../services/device.service";
 
 export class DeviceController {
   /**
@@ -17,7 +17,8 @@ export class DeviceController {
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'An error occurred while creating the device.',
+        message:
+          error.message || "An error occurred while creating the device.",
       });
     }
   };
@@ -27,7 +28,6 @@ export class DeviceController {
    */
   getAllDevices = async (req: Request, res: Response) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
       const devices = await deviceService.getAllDevices();
 
       return res.status(200).json({
@@ -37,7 +37,8 @@ export class DeviceController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message || 'An error occurred while fetching the devices.',
+        message:
+          error.message || "An error occurred while fetching the devices.",
       });
     }
   };
@@ -48,7 +49,9 @@ export class DeviceController {
   getUnassignedDevices = async (req: Request, res: Response) => {
     try {
       const { plugId } = req.query;
-      const devices = await deviceService.getUnassignedDevices(plugId as string);
+      const devices = await deviceService.getUnassignedDevices(
+        plugId as string,
+      );
 
       return res.status(200).json({
         success: true,
@@ -57,7 +60,9 @@ export class DeviceController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message || 'An error occurred while fetching unassigned devices.',
+        message:
+          error.message ||
+          "An error occurred while fetching unassigned devices.",
       });
     }
   };
@@ -73,7 +78,7 @@ export class DeviceController {
       if (!device) {
         return res.status(404).json({
           success: false,
-          message: 'Device not found',
+          message: "Device not found",
         });
       }
 
@@ -84,7 +89,37 @@ export class DeviceController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message || 'An error occurred while fetching the device.',
+        message:
+          error.message || "An error occurred while fetching the device.",
+      });
+    }
+  };
+
+  /**
+   * Handles the request to update an existing device
+   */
+  updateDevice = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+      const updatedDevice = await deviceService.updateDevice(id, data);
+
+      if (!updatedDevice) {
+        return res.status(404).json({
+          success: false,
+          message: "Device not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: updatedDevice,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error.message || "An error occurred while updating the device.",
       });
     }
   };
@@ -99,12 +134,13 @@ export class DeviceController {
 
       return res.status(200).json({
         success: true,
-        message: 'Device deleted successfully.',
+        message: "Device deleted successfully.",
       });
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message || 'An error occurred while deleting the device.',
+        message:
+          error.message || "An error occurred while deleting the device.",
       });
     }
   };
@@ -117,8 +153,10 @@ export class DeviceController {
       const { id } = req.params;
       const { state } = req.body;
 
-      if (state !== 'on' && state !== 'off') {
-        return res.status(400).json({ success: false, message: "State must be 'on' or 'off'" });
+      if (state !== "on" && state !== "off") {
+        return res
+          .status(400)
+          .json({ success: false, message: "State must be 'on' or 'off'" });
       }
 
       const device = await deviceService.toggleDeviceOutlet(id, state);
@@ -131,10 +169,63 @@ export class DeviceController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message || 'An error occurred while toggling the device.',
+        message:
+          error.message || "An error occurred while toggling the device.",
+      });
+    }
+  };
+
+  /**
+   * Handles setting a sleep timer on a device
+   */
+  setTimer = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { durationMins } = req.body;
+
+      if (durationMins === undefined || durationMins === null) {
+        return res.status(400).json({
+          success: false,
+          message: "durationMins is required.",
+        });
+      }
+
+      const device = await deviceService.setTimer(id, Number(durationMins));
+
+      return res.status(200).json({
+        success: true,
+        message: `Sleep timer set for ${durationMins} minutes.`,
+        data: device,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to set sleep timer.",
+      });
+    }
+  };
+
+  /**
+   * Handles cancelling an active sleep timer on a device
+   */
+  cancelTimer = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const device = await deviceService.cancelTimer(id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Sleep timer cancelled.",
+        data: device,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Failed to cancel sleep timer.",
       });
     }
   };
 }
 
 export default new DeviceController();
+

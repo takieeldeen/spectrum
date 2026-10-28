@@ -62,7 +62,7 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
       <Box
         alt="Single logo"
         component="img"
-        src="/logo/spectrum-mini-logo.png"
+        src="/logo/spectrum-mini-logo.svg"
         width="100%"
         height="100%"
         sx={{ objectFit: 'contain' }}

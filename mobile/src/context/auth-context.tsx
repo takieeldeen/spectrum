@@ -6,13 +6,35 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { User, AuthContextType } from "@/types/user";
+import { Appearance } from "react-native";
+import { User, AuthContextType, UserTheme, UserLanguage } from "@/types/user";
 import {
   saveAuthSession,
   getAuthSession,
   clearAuthSession,
+  saveStoredTheme,
+  getStoredTheme,
+  saveStoredLanguage,
+  getStoredLanguage,
 } from "@/utils/storage";
 import { getMe } from "@/api/auth";
+import i18n from "@/i18n";
+
+export function applyTheme(themeMode?: UserTheme | null) {
+  if (!themeMode) return;
+  if (themeMode === "system") {
+    Appearance.setColorScheme("unspecified");
+  } else {
+    Appearance.setColorScheme(themeMode);
+  }
+}
+
+export async function applyLanguage(lang?: UserLanguage | null) {
+  if (!lang) return;
+  if (lang !== i18n.language) {
+    await i18n.changeLanguage(lang);
+  }
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -21,28 +43,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load preserved auth session on app startup
+  // Load preserved auth session and settings on app startup
   useEffect(() => {
     let isMounted = true;
 
-    async function loadStoredSession() {
+    async function loadStoredSessionAndSettings() {
       try {
-        const stored = await getAuthSession();
+        // 1. Initial fallback: load settings from local storage
+        const [fallbackTheme, fallbackLang, stored] = await Promise.all([
+          getStoredTheme(),
+          getStoredLanguage(),
+          getAuthSession(),
+        ]);
+
+        if (fallbackTheme) {
+          applyTheme(fallbackTheme);
+        }
+        if (fallbackLang) {
+          await applyLanguage(fallbackLang);
+        }
+
+        // 2. If stored session exists, prefill user and their preferences
         if (stored && stored.token && stored.user) {
           if (isMounted) {
             setToken(stored.token);
             setUser(stored.user);
           }
 
-          // In the background, verify and refresh latest user state from backend
+          if (stored.user.theme) {
+            applyTheme(stored.user.theme);
+            saveStoredTheme(stored.user.theme);
+          }
+          if (stored.user.language) {
+            await applyLanguage(stored.user.language);
+            saveStoredLanguage(stored.user.language);
+          }
+
+          // 3. In the background, verify and refresh latest user state from backend
           try {
             const freshUser = await getMe(stored.token);
             if (isMounted && freshUser) {
               setUser(freshUser);
               await saveAuthSession(stored.token, freshUser);
+
+              // Apply fresh settings from DB and update local fallback
+              if (freshUser.theme) {
+                applyTheme(freshUser.theme);
+                await saveStoredTheme(freshUser.theme);
+              }
+              if (freshUser.language) {
+                await applyLanguage(freshUser.language);
+                await saveStoredLanguage(freshUser.language);
+              }
             }
           } catch (apiErr: any) {
-            // If the server explicitly rejected the token (401 / expired), invalidate session
             const message = apiErr?.message?.toLowerCase?.() || "";
             if (
               message.includes("unauthorized") ||
@@ -66,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    loadStoredSession();
+    loadStoredSessionAndSettings();
 
     return () => {
       isMounted = false;
@@ -77,6 +131,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(newToken);
     setUser(newUser);
     await saveAuthSession(newToken, newUser);
+
+    // Apply and persist user settings from login
+    if (newUser.theme) {
+      applyTheme(newUser.theme);
+      await saveStoredTheme(newUser.theme);
+    }
+    if (newUser.language) {
+      await applyLanguage(newUser.language);
+      await saveStoredLanguage(newUser.language);
+    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -95,6 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return next;
       });
+
+      if (updated.theme) {
+        applyTheme(updated.theme);
+        saveStoredTheme(updated.theme);
+      }
+      if (updated.language) {
+        applyLanguage(updated.language);
+        saveStoredLanguage(updated.language);
+      }
     },
     [token],
   );

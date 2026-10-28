@@ -101,6 +101,24 @@ export class PlugService {
   }
 
   /**
+   * Retrieves devices assigned to each outlet port (1-4) for a plug
+   */
+  async getAssignedDevicesForPlug(plugId: string): Promise<{
+    device1: string;
+    device2: string;
+    device3: string;
+    device4: string;
+  }> {
+    const devices = await DeviceModel.find({ plugId }).lean();
+    return {
+      device1: devices.find((d) => d.plugPort === 1)?._id?.toString() || "",
+      device2: devices.find((d) => d.plugPort === 2)?._id?.toString() || "",
+      device3: devices.find((d) => d.plugPort === 3)?._id?.toString() || "",
+      device4: devices.find((d) => d.plugPort === 4)?._id?.toString() || "",
+    };
+  }
+
+  /**
    * Toggles a plug outlet ON or OFF using hardware service
    * and updates lastTurnedOn if a device is assigned to that port
    */

@@ -10,8 +10,12 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = Number(process.env.PORT) || 8080;
 
+import path from 'path';
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Initialize WebSocket server
@@ -27,21 +31,11 @@ const dbName = process.env.DB_NAME;
 // Replace YOUR_CLUSTER_URL with your actual MongoDB cluster URL
 const mongoUri = `mongodb+srv://${dbUsername}:${dbPassword}@cluster0.tyxy7w0.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
 
-import metricsService from './services/metrics.service';
-
 if (dbUsername && dbPassword && dbName) {
   mongoose
     .connect(mongoUri)
     .then(() => {
       console.log('Connected to MongoDB via Mongoose');
-      // Start background metrics rollups (hourly and daily continuous downsampling)
-      setInterval(() => {
-        metricsService.rollupHourly().catch((e) => console.error('Hourly rollup error:', e));
-      }, 10 * 60 * 1000); // every 10 min
-
-      setInterval(() => {
-        metricsService.rollupDaily().catch((e) => console.error('Daily rollup error:', e));
-      }, 60 * 60 * 1000); // every hour
     })
     .catch((err) => console.error('MongoDB connection error:', err));
 } else {

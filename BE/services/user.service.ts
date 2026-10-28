@@ -251,10 +251,16 @@ export class UserService {
     userId: string,
     data: {
       name?: string;
+      email?: string;
       phoneNumber?: string | null;
       language?: UserLanguage;
       theme?: UserTheme;
       imageUrl?: string | null;
+      kwhCost?: number;
+      monthlyBudget?: number;
+      overBudgetAlertEnabled?: boolean;
+      budgetAlertPercent?: number;
+      powerUnit?: 'W' | 'kW';
     }
   ): Promise<IUser> {
     const user = await UserModel.findById(userId);
@@ -263,10 +269,30 @@ export class UserService {
     }
 
     if (data.name !== undefined) user.name = data.name.trim();
+
+    if (data.email !== undefined) {
+      const trimmedEmail = data.email.toLowerCase().trim();
+      if (trimmedEmail !== user.email) {
+        const existing = await UserModel.findOne({
+          email: trimmedEmail,
+          _id: { $ne: userId },
+        });
+        if (existing) {
+          throw new Error('Email is already in use');
+        }
+        user.email = trimmedEmail;
+      }
+    }
+
     if (data.phoneNumber !== undefined) user.phoneNumber = data.phoneNumber ? data.phoneNumber.trim() : null;
     if (data.language !== undefined) user.language = data.language;
     if (data.theme !== undefined) user.theme = data.theme;
     if (data.imageUrl !== undefined) user.imageUrl = data.imageUrl;
+    if (data.kwhCost !== undefined) user.kwhCost = data.kwhCost;
+    if (data.monthlyBudget !== undefined) user.monthlyBudget = data.monthlyBudget;
+    if (data.overBudgetAlertEnabled !== undefined) user.overBudgetAlertEnabled = data.overBudgetAlertEnabled;
+    if (data.budgetAlertPercent !== undefined) user.budgetAlertPercent = data.budgetAlertPercent;
+    if (data.powerUnit !== undefined) user.powerUnit = data.powerUnit;
 
     await user.save();
     return user;

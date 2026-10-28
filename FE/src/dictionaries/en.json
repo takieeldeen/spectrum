@@ -242,5 +242,28 @@
     "PROTECTED": "Protected & Monitored 24/7",
     "SYSTEM_HEALTH": "System Health",
     "HEALTHY": "All systems operating normally"
+  },
+  "SLEEP_TIMER": {
+    "TITLE": "Sleep Timer",
+    "SUBTITLE": "Automatically turn off this device after a set duration",
+    "SET_TIMER": "Set Timer",
+    "CANCEL_TIMER": "Cancel Timer",
+    "TURNS_OFF_IN": "Turns off in",
+    "TIMER_SET_SUCCESS": "Timer set successfully",
+    "TIMER_CANCELLED": "Timer cancelled",
+    "TIMER_ERROR": "Failed to set timer",
+    "TIMER_COMPLETED": "{{name}} was turned off by sleep timer",
+    "TIMER_FAILED": "Sleep timer failed to turn off {{name}}",
+    "MIN_1_TEST": "1 min (Testing Only)",
+    "TESTING_ONLY": "Testing Only",
+    "MIN_15": "15 min",
+    "MIN_30": "30 min",
+    "HOUR_1": "1 hour",
+    "HOUR_2": "2 hours",
+    "HOUR_4": "4 hours",
+    "HOUR_8": "8 hours",
+    "ACTIVE_TIMER": "Timer Active",
+    "CANCEL_CONFIRM": "Are you sure you want to cancel the timer?"
   }
 }
+

@@ -5,6 +5,12 @@ import plugService, { PlugService } from "./plug.service";
 import metricsService from "./metrics.service";
 import jwt from "jsonwebtoken";
 
+let ioInstance: Server | null = null;
+
+export function getIO(): Server | null {
+  return ioInstance;
+}
+
 export function initializeSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -12,6 +18,8 @@ export function initializeSocket(httpServer: HttpServer) {
       methods: ["GET", "POST"],
     },
   });
+  ioInstance = io;
+
   io.use((socket, next) => {
     try {
       const { token } = socket.handshake.auth;
@@ -28,10 +36,11 @@ export function initializeSocket(httpServer: HttpServer) {
   // We instantly broadcast it to ONLY the users looking at this specific plug.
   hardwareService.on("hardware_data", (payload) => {
     io.to(`plug_${payload.plugId}`).emit("live_data", payload);
-    metricsService.recordTelemetry(
+    console.log(payload);
+    metricsService.updateLiveTelemetry(
       payload.plugId,
       payload.outlets,
-      payload.voltage
+      payload.voltage,
     );
   });
 
@@ -43,7 +52,12 @@ export function initializeSocket(httpServer: HttpServer) {
   // 2. Handle Frontend connections
   io.on("connection", (socket) => {
     const user = socket?.data?.user;
-    console.log(user);
+    if (user?.id) {
+      socket.join(`user_${user.id}`);
+      console.log(
+        `Client ${socket.id} joined personal user room user_${user.id}`,
+      );
+    }
     console.log(`Frontend client connected: ${socket.id}`);
 
     // When user opens the details page:

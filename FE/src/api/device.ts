@@ -8,8 +8,7 @@ export const useCreateDevice = () => {
   return useMutation({
     mutationFn: async (data: any) => {
       const response = await axiosInstance.post('/devices', {
-        nameEn: data.name,
-        nameAr: data.arabicName,
+        name: data.name,
       });
       return response.data;
     },
@@ -83,3 +82,34 @@ export const useToggleDevice = () => {
     },
   });
 };
+
+export const useSetDeviceTimer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, durationMins }: { id: string; durationMins: number }) => {
+      const response = await axiosInstance.post(`/devices/${id}/timer`, { durationMins });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['devices', variables.id] });
+    },
+  });
+};
+
+export const useCancelDeviceTimer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await axiosInstance.delete(`/devices/${id}/timer`);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['devices', id] });
+    },
+  });
+};
+

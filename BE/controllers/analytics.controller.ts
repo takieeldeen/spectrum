@@ -8,10 +8,7 @@ export class AnalyticsController {
    */
   private getUserId(req: Request): string | null {
     return (
-      req.userId ||
-      req.user?._id?.toString() ||
-      (req.user as any)?.id ||
-      null
+      req.userId || req.user?._id?.toString() || (req.user as any)?.id || null
     );
   }
 
@@ -27,18 +24,20 @@ export class AnalyticsController {
       const targetDate = date ? new Date(date as string) : new Date();
 
       // If no specific strip requested, aggregate across all strips owned by user
+      const userId = this.getUserId(req);
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "User authentication required" });
+      }
       if (!stripId || typeof stripId !== "string") {
-        const userId = this.getUserId(req);
-        if (!userId) {
-          return res.status(401).json({ success: false, message: "User authentication required" });
-        }
-
-        const data = await metricsService.getUserDayGraph(userId, targetDate);
+        const data = await metricsService.getUserDayGraph(userId);
         return res.status(200).json({ success: true, data });
       }
 
-      const outletNum = outlet !== undefined ? parseInt(outlet as string, 10) : 0;
-      const data = await metricsService.getDayGraph(stripId, outletNum, targetDate);
+      const outletNum =
+        outlet !== undefined ? parseInt(outlet as string, 10) : 0;
+      const data = await metricsService.getUserDayGraph(userId, stripId);
 
       return res.status(200).json({
         success: true,
@@ -63,18 +62,21 @@ export class AnalyticsController {
     try {
       const { stripId, outlet } = req.query;
 
-      if (!stripId || typeof stripId !== "string") {
-        const userId = this.getUserId(req);
-        if (!userId) {
-          return res.status(401).json({ success: false, message: "User authentication required" });
-        }
+      const userId = this.getUserId(req);
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "User authentication required" });
+      }
 
+      if (!stripId || typeof stripId !== "string") {
         const data = await metricsService.getUserWeekGraph(userId);
         return res.status(200).json({ success: true, data });
       }
 
-      const outletNum = outlet !== undefined ? parseInt(outlet as string, 10) : 0;
-      const data = await metricsService.getWeekGraph(stripId, outletNum);
+      const outletNum =
+        outlet !== undefined ? parseInt(outlet as string, 10) : 0;
+      const data = await metricsService.getUserWeekGraph(userId, stripId);
 
       return res.status(200).json({
         success: true,
@@ -96,15 +98,21 @@ export class AnalyticsController {
     try {
       const { stripId, outlet } = req.query;
 
-      if (!stripId || typeof stripId !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "stripId query parameter is required for month graph",
-        });
+      const userId = this.getUserId(req);
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "User authentication required" });
       }
 
-      const outletNum = outlet !== undefined ? parseInt(outlet as string, 10) : 0;
-      const data = await metricsService.getMonthGraph(stripId, outletNum);
+      if (!stripId || typeof stripId !== "string") {
+        const data = await metricsService.getUserMonthGraph(userId);
+        return res.status(200).json({ success: true, data });
+      }
+
+      const outletNum =
+        outlet !== undefined ? parseInt(outlet as string, 10) : 0;
+      const data = await metricsService.getUserMonthGraph(userId, stripId);
 
       return res.status(200).json({
         success: true,
@@ -128,7 +136,9 @@ export class AnalyticsController {
     try {
       const userId = this.getUserId(req);
       if (!userId) {
-        return res.status(401).json({ success: false, message: "User authentication required" });
+        return res
+          .status(401)
+          .json({ success: false, message: "User authentication required" });
       }
 
       const data = await metricsService.getUserStripsSummary(userId);
@@ -178,45 +188,16 @@ export class AnalyticsController {
   }
 
   /**
-   * POST /analytics/flush
-   * Force flush in-memory micro-batch to MongoDB (admin/testing)
+   * GET /analytics/status
+   * Confirms the energy-snapshot metrics engine is active.
    */
-  public async triggerFlush(req: Request, res: Response) {
-    try {
-      const count = await metricsService.flush();
-      return res.status(200).json({
-        success: true,
-        message: `Flushed ${count} metric buckets to database`,
-      });
-    } catch (err: any) {
-      return res.status(500).json({
-        success: false,
-        message: err.message,
-      });
-    }
-  }
-
-  /**
-   * POST /analytics/rollup
-   * Triggers rollups for hourly and daily downsampling
-   */
-  public async triggerRollup(req: Request, res: Response) {
-    try {
-      const hourlyCount = await metricsService.rollupHourly();
-      const dailyCount = await metricsService.rollupDaily();
-
-      return res.status(200).json({
-        success: true,
-        message: "Rollup completed successfully",
-        hourlyCount,
-        dailyCount,
-      });
-    } catch (err: any) {
-      return res.status(500).json({
-        success: false,
-        message: err.message,
-      });
-    }
+  public async getStatus(req: Request, res: Response) {
+    return res.status(200).json({
+      success: true,
+      engine: "energy-snapshot",
+      message:
+        "Snapshots are written on every telemetry tick. No manual flush or rollup needed.",
+    });
   }
 }
 

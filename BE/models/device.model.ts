@@ -3,11 +3,12 @@ import { IDevice } from '../types/device.type';
 
 const DeviceSchema: Schema<IDevice> = new Schema(
   {
-    nameEn: { type: String, required: true },
-    nameAr: { type: String, required: false },
+    name: { type: String, required: true },
     plugId: { type: Schema.Types.ObjectId, ref: 'Plug', required: false },
     plugPort: { type: Number, required: false },
     lastTurnedOn: { type: Date, required: false },
+    timerClosesAt: { type: Date, required: false, default: null },
+    timerDurationMins: { type: Number, required: false, default: null },
   },
   {
     timestamps: true,

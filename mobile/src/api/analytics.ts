@@ -48,14 +48,33 @@ export const useGetDayAnalytics = (stripId?: string, outlet?: number) => {
  * Hook to fetch 7-day Week analytics (either user-wide or for a specific strip)
  */
 export const useGetWeekAnalytics = (stripId?: string, outlet?: number) => {
-  return useQuery<IAnalyticsWeekResponse>({
+  return useQuery<any>({
     retry: false,
     queryKey: ["analytics", "week", stripId, outlet],
     queryFn: async () => {
       const { data } = await api.get<{
         success: boolean;
-        data: IAnalyticsWeekResponse;
+        data: any;
       }>("/analytics/week", {
+        params: { stripId, outlet },
+      });
+      return data.data;
+    },
+  });
+};
+
+/**
+ * Hook to fetch 30-day Month analytics (either user-wide or for a specific strip)
+ */
+export const useGetMonthAnalytics = (stripId?: string, outlet?: number) => {
+  return useQuery<any>({
+    retry: false,
+    queryKey: ["analytics", "month", stripId, outlet],
+    queryFn: async () => {
+      const { data } = await api.get<{
+        success: boolean;
+        data: any;
+      }>("/analytics/month", {
         params: { stripId, outlet },
       });
       return data.data;

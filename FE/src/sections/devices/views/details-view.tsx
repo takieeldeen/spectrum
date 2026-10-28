@@ -14,6 +14,7 @@ import {
   useTheme,
   CircularProgress,
   Drawer,
+  Fade,
 } from '@mui/material';
 import { varAlpha } from 'src/theme/styles';
 import { Iconify } from 'src/components/iconify';
@@ -31,6 +32,7 @@ import LoadingView from './loading-view';
 import { IGuard } from 'src/types/guard';
 import { useGetGuards } from 'src/api/guards';
 import DeviceGuards from '../device-guards';
+import DeviceTimerButton from '../device-timer-button';
 
 type Props = {
   deviceId: string;
@@ -206,7 +208,7 @@ export default function DeviceDetailsView({ deviceId }: Props) {
                 >
                   <Stack alignItems={{ xs: 'center', md: 'flex-start' }}>
                     <Typography variant="h4">
-                      {i18n.language === 'ar' ? device?.nameAr || device?.nameEn : device?.nameEn}
+                      {device?.name}
                     </Typography>
                     <Typography color="text.secondary">
                       {device?.plugId
@@ -412,6 +414,26 @@ export default function DeviceDetailsView({ deviceId }: Props) {
                 </Stack>
               </Stack>
             </Card>
+            <Fade in={Boolean(outletProps?.on)} timeout={{ enter: 200, exit: 0 }} unmountOnExit>
+              <Card sx={{ p: 3 }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Iconify icon="solar:alarm-bold-duotone" color="primary.main" width={28} />
+                    <Stack>
+                      <Typography sx={{ fontWeight: 700 }}>{t('SLEEP_TIMER.TITLE')}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('SLEEP_TIMER.SUBTITLE')}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                  <DeviceTimerButton
+                    deviceId={device._id}
+                    deviceName={device.name}
+                    timerClosesAt={device.timerClosesAt}
+                  />
+                </Stack>
+              </Card>
+            </Fade>
           </Stack>
           <Stack flex={{ md: 5, xs: 1 }} spacing={2}>
             <Card sx={{ p: 3 }}>

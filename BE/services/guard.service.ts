@@ -1,5 +1,7 @@
 import GuardModel from '../models/guard.model';
 import DeviceModel from '../models/device.model';
+import PlugModel from '../models/plug.model';
+import notificationService from './notification.service';
 import { IGuard, GuardComparator, GuardTarget, GuardAction } from '../types/guard.type';
 
 export class GuardService {
@@ -337,7 +339,7 @@ export class GuardService {
       this.cooldownMap.set(guard._id.toString(), now);
 
       console.log(
-        `🚨 GUARD TRIGGERED on Plug ${plugId}, Socket ${port} (${device.nameEn || device.nameAr || 'Device'}): ` +
+        `🚨 GUARD TRIGGERED on Plug ${plugId}, Socket ${port} (${device.name || 'Device'}): ` +
           `${guard.target} reached ${currentValue} (Threshold: ${guard.comparator} ${guard.value}). ` +
           `Action executed: Turned ${targetState.toUpperCase()}`
       );
@@ -347,7 +349,7 @@ export class GuardService {
         plugId,
         port,
         deviceId: device._id.toString(),
-        deviceName: device.nameEn || device.nameAr,
+        deviceName: device.name,
         guardId: guard._id.toString(),
         target: guard.target,
         comparator: guard.comparator,
@@ -356,6 +358,33 @@ export class GuardService {
         action: guard.action,
         timestamp: new Date().toISOString(),
       });
+
+      // Persist notification and push real-time socket alert to user room
+      try {
+        const plug = await PlugModel.findById(plugId).lean();
+        if (plug && plug.user) {
+          await notificationService.createNotification({
+            userId: plug.user.toString(),
+            type: 'GUARD',
+            entityType: 'DEVICE',
+            entityId: device._id.toString(),
+            data: {
+              entityName: device.name,
+              plugId,
+              plugName: plug.name,
+              port,
+              action: guard.action,
+              target: guard.target,
+              comparator: guard.comparator,
+              threshold: guard.value,
+              actualValue: currentValue,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+      } catch (notifErr) {
+        console.error('Failed to create guard notification:', notifErr);
+      }
     }
   }
 }

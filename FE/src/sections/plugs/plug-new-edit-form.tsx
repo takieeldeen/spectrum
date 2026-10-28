@@ -247,9 +247,7 @@ export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
                             value={valueObj}
                             options={availableDevices}
                             loading={isLoadingDevices}
-                            getOptionLabel={(option) =>
-                              i18n.language === "ar"? option.nameAr || option.nameEn : option.nameEn
-                            }
+                            getOptionLabel={(option) => option.name || ''}
                             isOptionEqualToValue={(option, val) => option._id === val._id}
                             onChange={(event, newValue) => field.onChange(newValue ? newValue._id : '')}
                             renderInput={(params) => (

@@ -6,9 +6,11 @@ import {
   Platform,
   ViewStyle,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
 import Lucide from "@react-native-vector-icons/lucide";
+import { useAuth } from "@/context/auth-context";
 
 export interface StatsCardsProps {
   totalPower?: number;
@@ -27,12 +29,16 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   energyTrend = "12%",
   costTrend = "8%",
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const { user } = useAuth();
   const isDark = theme.isDark;
-  const isRtl = I18nManager.isRTL;
+  const isArabic = (i18n.language || "ar").startsWith("ar");
+  const isRtl = I18nManager.isRTL || isArabic;
 
+  const kwhRate = user?.kwhCost ?? 0.7;
   const calculatedCost =
-    estimatedCost ?? Number(((totalEnergy ?? 0) * 0.68).toFixed(2));
+    estimatedCost ?? Number(((totalEnergy ?? 0) * kwhRate).toFixed(2));
 
   // Harmonious palette aligned with the dashboard's emerald / mint brand theme
   const cardColors = useMemo(
@@ -65,19 +71,27 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
     [isDark],
   );
 
+  const rowDir = isArabic
+    ? I18nManager.isRTL
+      ? "row"
+      : "row-reverse"
+    : I18nManager.isRTL
+      ? "row-reverse"
+      : "row";
+
   const rowStyle: ViewStyle = {
-    flexDirection: isRtl ? "row" : "row-reverse",
+    flexDirection: rowDir,
     gap: 12,
   };
 
   const cardInnerStyle: ViewStyle = {
-    flexDirection: isRtl ? "row" : "row-reverse",
+    flexDirection: rowDir,
     justifyContent: "space-between",
     alignItems: "center",
     flex: 1,
   };
 
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme, isRtl), [theme, isRtl]);
 
   return (
     <View style={styles.container}>
@@ -88,11 +102,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
           <View style={cardInnerStyle}>
             {/* Text side */}
             <View style={styles.textContainer}>
-              <ThemedText style={styles.cardTitle}>القدرة الحالية</ThemedText>
+              <ThemedText style={styles.cardTitle}>
+                {t("DASHBOARD.CURRENT_POWER")}
+              </ThemedText>
               <ThemedText style={styles.cardValue}>
                 {totalPower.toFixed(2)}
               </ThemedText>
-              <ThemedText style={styles.cardUnit}>واط</ThemedText>
+              <ThemedText style={styles.cardUnit}>
+                {t("DASHBOARD.WATT")}
+              </ThemedText>
             </View>
 
             {/* Icon side */}
@@ -114,11 +132,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
           <View style={cardInnerStyle}>
             {/* Text side */}
             <View style={styles.textContainer}>
-              <ThemedText style={styles.cardTitle}>إجمالي الاستهلاك</ThemedText>
+              <ThemedText style={styles.cardTitle}>
+                {t("DASHBOARD.TOTAL_ENERGY")}
+              </ThemedText>
               <ThemedText style={styles.cardValue}>
                 {totalEnergy.toFixed(2)}
               </ThemedText>
-              <ThemedText style={styles.cardUnit}>كيلو واط . ساعة</ThemedText>
+              <ThemedText style={styles.cardUnit}>
+                {t("DASHBOARD.KWH_UNIT")}
+              </ThemedText>
             </View>
 
             {/* Icon side with trend badge */}
@@ -143,11 +165,15 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
           <View style={cardInnerStyle}>
             {/* Text side */}
             <View style={styles.textContainer}>
-              <ThemedText style={styles.cardTitle}>عدد الأجهزة</ThemedText>
+              <ThemedText style={styles.cardTitle}>
+                {t("DASHBOARD.DEVICES_COUNT")}
+              </ThemedText>
               <ThemedText style={styles.cardValue}>
                 {activeDevicesCount}
               </ThemedText>
-              <ThemedText style={styles.cardUnit}>أجهزة متصلة</ThemedText>
+              <ThemedText style={styles.cardUnit}>
+                {t("DASHBOARD.CONNECTED_DEVICES")}
+              </ThemedText>
             </View>
 
             {/* Icon side: 3 Bar Chart indicator in theme brand colors */}
@@ -200,12 +226,14 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
             {/* Text side */}
             <View style={styles.textContainer}>
               <ThemedText style={styles.cardTitle}>
-                التكلفة التقريبية
+                {t("DASHBOARD.ESTIMATED_COST")}
               </ThemedText>
               <ThemedText style={styles.cardValue}>
                 {calculatedCost.toFixed(2)}
               </ThemedText>
-              <ThemedText style={styles.cardUnit}>جنيه اليوم</ThemedText>
+              <ThemedText style={styles.cardUnit}>
+                {t("DASHBOARD.COST_TODAY")}
+              </ThemedText>
             </View>
 
             {/* Icon side with trend badge */}
@@ -213,10 +241,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
               <View
                 style={[
                   styles.iconCircle,
-                  { backgroundColor: cardColors.energy.iconBg },
+                  { backgroundColor: cardColors.cost.iconBg },
                 ]}
               >
-                <Lucide name="coins" size={22} color={cardColors.energy.icon} />
+                <Lucide name="coins" size={22} color={cardColors.cost.icon} />
               </View>
             </View>
           </View>
@@ -228,7 +256,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
 
 export default StatsCards;
 
-const createStyles = (theme: ReturnType<typeof useTheme>) => {
+const createStyles = (
+  theme: ReturnType<typeof useTheme>,
+  isRtl: boolean = false,
+) => {
   const isDark = theme.isDark;
 
   return StyleSheet.create({
@@ -267,7 +298,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) => {
       fontSize: 13,
       fontWeight: "600",
       color: theme.textSecondary,
-      textAlign: "right",
+      textAlign: "left",
     },
     cardValue: {
       fontSize: 28,
@@ -275,13 +306,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) => {
       fontWeight: "800",
       color: theme.text,
       marginVertical: 2,
-      textAlign: "right",
+      textAlign: isRtl ? "right" : "left",
     },
     cardUnit: {
       fontSize: 12,
       fontWeight: "500",
       color: theme.textSecondary,
-      textAlign: "right",
+      textAlign: isRtl ? "right" : "left",
     },
     iconContainer: {
       alignItems: "center",

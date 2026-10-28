@@ -1,4 +1,10 @@
-import { Platform, StyleSheet, Text, type TextProps } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  type TextProps,
+  type TextStyle,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { Fonts, ThemeColor } from "@/constants/theme";
@@ -54,23 +60,33 @@ export function ThemedText({
   const fontStyle =
     type === "code" ? {} : getAppFont(targetWeight, i18n.language);
 
+  // Flatten all styles to ensure clean style resolution
+  const baseTypeStyle = type && styles[type] ? styles[type] : styles.default;
+  const isArabic = i18n.language?.startsWith("ar") ?? false;
+
+  const writingDirection: TextStyle["writingDirection"] = isArabic ? "rtl" : "ltr";
+
+  const resolvedStyle: TextStyle = StyleSheet.flatten([
+    { color: theme[themeColor ?? "text"] },
+    baseTypeStyle,
+    style,
+    fontSize !== undefined && { fontSize },
+    fontStyle,
+    { writingDirection },
+  ]) || {};
+
+  // On Android when using Arabic custom font files (Cairo), remove fontWeight
+  // so native Android doesn't synthesize faux-bold and miscalculate text bounds,
+  // which causes words to wrap prematurely or trailing words to disappear.
+  if (isArabic && Platform.OS === "android") {
+    delete (resolvedStyle as Record<string, any>).fontWeight;
+  }
+
   return (
     <Text
-      style={[
-        { color: theme[themeColor ?? "text"] },
-        type === "default" && styles.default,
-        type === "title" && styles.title,
-        type === "small" && styles.small,
-        type === "smallBold" && styles.smallBold,
-        type === "subtitle" && styles.subtitle,
-        type === "link" && styles.link,
-        type === "linkPrimary" && styles.linkPrimary,
-        type === "code" && styles.code,
-        style,
-        fontSize !== undefined && { fontSize },
-        fontStyle, // Applied to guarantee Android picks the true custom weight file
-        { writingDirection: i18n.language?.startsWith("ar") ? "rtl" : "ltr" },
-      ]}
+      textBreakStrategy="simple"
+      android_hyphenationFrequency="none"
+      style={resolvedStyle}
       {...rest}
     />
   );

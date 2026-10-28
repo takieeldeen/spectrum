@@ -1,12 +1,5 @@
-import { ThemedView } from "@/components/themed-view";
-import { StyleSheet } from "react-native";
+import ProfileMainView from "../../../sections/settings/views/main-view";
 
 export default function ProfileScreen() {
-  return <ThemedView style={styles.container} />;
+  return <ProfileMainView />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

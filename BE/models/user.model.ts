@@ -55,7 +55,7 @@ const UserSchema: Schema<IUser> = new Schema(
     theme: {
       type: String,
       enum: {
-        values: ["dark", "light"],
+        values: ["dark", "light", "system"],
         message: "{VALUE} is not a valid theme",
       },
       default: "dark",
@@ -76,6 +76,34 @@ const UserSchema: Schema<IUser> = new Schema(
     lastLogin: {
       type: Date,
       required: false,
+    },
+    kwhCost: {
+      type: Number,
+      required: false,
+      default: 0.7,
+    },
+    monthlyBudget: {
+      type: Number,
+      required: false,
+      default: 300,
+    },
+    overBudgetAlertEnabled: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+    budgetAlertPercent: {
+      type: Number,
+      required: false,
+      default: 80,
+    },
+    powerUnit: {
+      type: String,
+      enum: {
+        values: ["W", "kW"],
+        message: "{VALUE} is not a valid power unit",
+      },
+      default: "W",
     },
   },
   {

@@ -1,7 +1,6 @@
 export interface IDevice {
   _id: string;
-  nameEn: string;
-  nameAr?: string;
+  name: string;
   plugId?: {
     _id: string;
     arabicName: string;
@@ -11,4 +10,7 @@ export interface IDevice {
   createdAt?: string;
   updatedAt?: string;
   lastTurnedOn?: string;
+  timerClosesAt?: string | null;
+  timerDurationMins?: number | null;
 }
+

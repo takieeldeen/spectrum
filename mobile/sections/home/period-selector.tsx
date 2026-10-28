@@ -16,25 +16,14 @@ import Animated, {
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
 
-export type PeriodType = "day" | "week" | "month";
+import { useTranslation } from "react-i18next";
+
+export type PeriodType = "day" | "month" | "week";
 
 export interface PeriodOption {
   id: PeriodType;
   label: string;
 }
-
-// Ordered strictly from visual left to right: Month (left) -> Week (center) -> Day (right)
-const DEFAULT_PERIODS: PeriodOption[] = [
-  { id: "month", label: "الشهر" },
-  { id: "week", label: "الأسبوع" },
-  { id: "day", label: "اليوم" },
-];
-
-const PERIOD_INDEX: Record<PeriodType, number> = {
-  month: 0,
-  week: 1,
-  day: 2,
-};
 
 export interface PeriodSelectorProps {
   value?: PeriodType;
@@ -48,9 +37,19 @@ export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
   value,
   defaultValue = "day",
   onChange,
-  options = DEFAULT_PERIODS,
+  options,
   style,
 }) => {
+  const { t } = useTranslation();
+  const defaultPeriods = React.useMemo<PeriodOption[]>(
+    () => [
+      { id: "month", label: t("DASHBOARD.PERIOD_MONTH") },
+      { id: "day", label: t("DASHBOARD.PERIOD_DAY") },
+    ],
+    [t],
+  );
+  const resolvedOptions = options ?? defaultPeriods;
+
   const [internalValue, setInternalValue] = useState<PeriodType>(
     value ?? defaultValue,
   );
@@ -63,12 +62,15 @@ export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
   const opacity = useSharedValue(0);
   const hasInitialized = useRef(false);
 
-  const segmentCount = options.length;
+  const segmentCount = resolvedOptions.length;
 
   useEffect(() => {
     if (trackWidth > 0) {
       const segWidth = trackWidth / segmentCount;
-      const targetIndex = PERIOD_INDEX[selectedPeriod] ?? 0;
+      const targetIndex = Math.max(
+        0,
+        resolvedOptions.findIndex((o) => o.id === selectedPeriod),
+      );
       const targetX = targetIndex * segWidth;
 
       if (!hasInitialized.current) {
@@ -158,7 +160,7 @@ export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
           alignItems: "center",
         }}
       >
-        {options.map((item) => {
+        {resolvedOptions.map((item) => {
           const isSelected = selectedPeriod === item.id;
           return (
             <Pressable

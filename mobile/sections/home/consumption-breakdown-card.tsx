@@ -15,6 +15,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
 import SafeComponentBoundary from "@/components/safe-boundary";
@@ -120,14 +121,14 @@ export const BreakdownEmptyState: React.FC<BreakdownEmptyStateProps> = ({
   center,
   strokeWidth,
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.isDark;
-  const isRtl = I18nManager.isRTL;
 
   return (
     <View
       style={{
-        flexDirection: "row-reverse",
+        flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         gap: 16,
@@ -201,7 +202,7 @@ export const BreakdownEmptyState: React.FC<BreakdownEmptyStateProps> = ({
             textAlign: "center",
           }}
         >
-          {isRtl ? "لا توجد أجهزة قيد التشغيل بعد" : "No devices running yet"}
+          {t("DASHBOARD.NO_DEVICES_RUNNING")}
         </ThemedText>
 
         {/* Subtitle */}
@@ -214,9 +215,7 @@ export const BreakdownEmptyState: React.FC<BreakdownEmptyStateProps> = ({
             lineHeight: 19,
           }}
         >
-          {isRtl
-            ? "لكي يعمل هذا الرسم البياني،\nيرجى تشغيل بعض الأجهزة."
-            : "To display this chart,\nplease turn on some devices."}
+          {t("DASHBOARD.TURN_ON_DEVICES_HINT")}
         </ThemedText>
       </View>
     </View>
@@ -265,14 +264,22 @@ export const ConsumptionBreakdownCard: React.FC<
   ConsumptionBreakdownCardProps
 > = ({
   totalPower = 6.62,
-  unit = "واط",
+  unit,
   items = DEFAULT_BREAKDOWN,
-  title = "توزيع الاستهلاك",
+  title,
   style,
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const isDark = theme.isDark;
-  const isRtl = I18nManager.isRTL;
+  const isArabic = (i18n.language || "ar").startsWith("ar");
+  const isRtl = I18nManager.isRTL || isArabic;
+  const rowDirection = isArabic
+    ? I18nManager.isRTL ? "row" : "row-reverse"
+    : I18nManager.isRTL ? "row-reverse" : "row";
+
+  const cardTitle = title ?? t("DASHBOARD.CONSUMPTION_BREAKDOWN");
+  const cardUnit = unit ?? t("DASHBOARD.WATT");
 
   // Donut chart dimensions
   const size = 138;
@@ -314,19 +321,17 @@ export const ConsumptionBreakdownCard: React.FC<
             device: correspondingDevice
               ? {
                   _id: correspondingDevice?._id,
-                  nameAr: correspondingDevice?.nameAr,
-                  nameEn: correspondingDevice?.nameEn,
+                  name: correspondingDevice?.name,
                 }
               : {
                   _id: `outlet${portNumber}`,
-                  nameAr: "مخرج " + portNumber,
-                  nameEn: "Outlet " + portNumber,
+                  name: t("DASHBOARD.OUTLET_NUMBER", { number: portNumber }),
                 },
           };
         })
         .filter((outlet) => outlet.isOn);
     });
-  }, [liveData, devices]);
+  }, [liveData, devices, t]);
 
   const totalPowerConsumption = useMemo(() => {
     return allOutlets.reduce((acc, outlet) => acc + (outlet.power || 0), 0);
@@ -343,7 +348,7 @@ export const ConsumptionBreakdownCard: React.FC<
         strip: { _id: item.id, nameAr: item.name, nameEn: item.name },
         portNumber: index + 1,
         power: (item.percentage / 100) * totalPower,
-        device: { _id: item.id, nameAr: item.name, nameEn: item.name },
+        device: { _id: item.id, name: item.name },
         percentage: item.percentage.toFixed(1),
         color: greenShades[index % greenShades.length],
       }));
@@ -359,14 +364,14 @@ export const ConsumptionBreakdownCard: React.FC<
     );
 
     const candidateOutlets = sorted;
-    const othersLabel = isRtl ? "أخرى (المجموع)" : "others (their total)";
+    const othersLabel = t("DASHBOARD.OTHERS_TOTAL");
 
     type BreakdownOutletItem = {
       id: string;
       strip: { _id: string; nameAr: string; nameEn: string };
       portNumber: number;
       power: number;
-      device: { _id: string; nameAr?: string; nameEn?: string };
+      device: { _id: string; name?: string };
       percentage: string;
       rawPct: number;
     };
@@ -415,14 +420,13 @@ export const ConsumptionBreakdownCard: React.FC<
         strip: {
           _id: "others",
           nameAr: othersLabel,
-          nameEn: "others (their total)",
+          nameEn: othersLabel,
         },
         portNumber: 0,
         power: othersPower,
         device: {
           _id: "others",
-          nameAr: othersLabel,
-          nameEn: "others (their total)",
+          name: othersLabel,
         },
         rawPct: othersPct,
         percentage: othersPct.toFixed(1),
@@ -439,7 +443,7 @@ export const ConsumptionBreakdownCard: React.FC<
       ...item,
       color: greenShades[index % greenShades.length],
     }));
-  }, [allOutlets, totalPowerConsumption, items, totalPower, isRtl, liveData]);
+  }, [allOutlets, totalPowerConsumption, items, totalPower, t, liveData]);
 
   const displayTotalPower =
     allOutlets.length > 0
@@ -486,9 +490,10 @@ export const ConsumptionBreakdownCard: React.FC<
             fontSize: 20,
             fontWeight: "800",
             color: theme.text,
+            textAlign: isRtl ? "right" : "left",
           }}
         >
-          {title}
+          {cardTitle}
         </ThemedText>
       </View>
 
@@ -506,7 +511,7 @@ export const ConsumptionBreakdownCard: React.FC<
         <Fade in={!isEmpty} duration={300}>
           <View
             style={{
-              flexDirection: "row-reverse",
+              flexDirection: rowDirection,
               justifyContent: "space-between",
               alignItems: "center",
               gap: 16,
@@ -522,9 +527,7 @@ export const ConsumptionBreakdownCard: React.FC<
               }}
             >
               {finalData.map((outlet) => {
-                const label = isRtl
-                  ? outlet?.device?.nameAr || outlet?.device?.nameEn
-                  : outlet?.device?.nameEn || outlet?.device?.nameAr;
+                const label = outlet?.device?.name;
 
                 return (
                   <View
@@ -662,7 +665,7 @@ export const ConsumptionBreakdownCard: React.FC<
                     marginTop: 2,
                   }}
                 >
-                  {unit}
+                  {cardUnit}
                 </ThemedText>
               </View>
             </View>

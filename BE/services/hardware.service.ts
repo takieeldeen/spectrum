@@ -292,6 +292,19 @@ class HardwareService extends EventEmitter {
               .catch((err) => {
                 console.error("Error loading guard service:", err);
               });
+
+            // Evaluate sleep timers on live strip data for this plug
+            import("./timer.service")
+              .then(({ default: timerService }) => {
+                timerService
+                  .evaluateTimersForPlug(plugId, outlets)
+                  .catch((err) => {
+                    console.error("Error evaluating timers:", err);
+                  });
+              })
+              .catch((err) => {
+                console.error("Error loading timer service:", err);
+              });
           }
         }
 

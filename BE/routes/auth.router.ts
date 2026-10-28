@@ -19,6 +19,16 @@ router.post('/login', authController.login);
 // GET /auth/me (Protected route)
 router.get('/me', authenticatedOnly, authController.getMe);
 
+import multer from 'multer';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+// POST /auth/avatar (Protected route)
+router.post('/avatar', authenticatedOnly, upload.single('file'), authController.uploadAvatar);
+
 // PATCH /auth/profile (Protected route)
 router.patch('/profile', authenticatedOnly, authController.updateProfile);
 

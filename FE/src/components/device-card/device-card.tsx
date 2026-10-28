@@ -8,8 +8,7 @@ function DeviceCard({ device }: { device: any }) {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   
-  const currentLang = i18n.language || 'en';
-  const displayName = currentLang === 'ar' && device?.nameAr && device.nameAr.length > 0 ? device.nameAr : device?.name;
+  const displayName = device?.name;
 
   return (
     <Card sx={{ height: 200, p: 3, width: '100%' }}>
