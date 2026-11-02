@@ -141,11 +141,11 @@ export class AnalyticsController {
           .json({ success: false, message: "User authentication required" });
       }
 
-      const data = await metricsService.getUserStripsSummary(userId);
+      // const data = await metricsService.getUserStripsSummary(userId);
 
       return res.status(200).json({
         success: true,
-        data,
+        // data,
       });
     } catch (err: any) {
       console.error("Error in getStripsSummary:", err);
@@ -172,11 +172,11 @@ export class AnalyticsController {
 
       const validPeriod =
         period === "week" || period === "month" ? period : "day";
-      const data = await metricsService.getBreakdown(stripId, validPeriod);
+      // const data = await metricsService.getBreakdown(stripId, validPeriod);
 
       return res.status(200).json({
         success: true,
-        data,
+        // data,
       });
     } catch (err: any) {
       console.error("Error in getBreakdown analytics:", err);
