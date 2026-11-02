@@ -30,12 +30,7 @@ function PlugCard({ plug }: { plug: IPlug }) {
     severity: 'success',
   });
 
-  const plugName =
-    i18n.language === 'ar'
-      ? plug.arabicName !== ''
-        ? plug.arabicName
-        : plug.name
-      : plug.name;
+  const plugName = plug.name;
 
   const handleDeleteClick = () => {
     popover.onClose();
@@ -129,11 +124,7 @@ function PlugCard({ plug }: { plug: IPlug }) {
         </Box>
         <Stack sx={{ alignSelf: 'stretch' }}>
           <Typography sx={{}} variant="h5">
-            {i18n.language === 'ar'
-              ? plug.arabicName !== ''
-                ? plug.arabicName
-                : plug.name
-              : plug.name}
+            {plugName}
           </Typography>
           <Typography
             variant="subtitle2"

@@ -1,4 +1,10 @@
 import nodemailer, { Transporter } from "nodemailer";
+import { BrevoClient } from "@getbrevo/brevo";
+import {
+  renderForgetPasswordEmailHtml,
+  renderActivationEmailHtml,
+  FORGET_PASSWORD_EMAIL_TEMPLATE,
+} from "../constants";
 
 export interface SendMailOptions {
   to: string;
@@ -11,14 +17,36 @@ export interface SendActivationMailOptions {
   to: string;
   name: string;
   token: string;
+  code?: string;
   language?: "ar" | "en";
+}
+
+export interface SendForgotPasswordMailOptions {
+  to: string;
+  code: string;
+  name?: string;
+  expirationMinutes?: number;
 }
 
 export class EmailService {
   private transporter: Transporter | null = null;
+  private brevoClient: BrevoClient | null = null;
 
   constructor() {
+    this.initBrevo();
     this.initTransporter();
+  }
+
+  private initBrevo() {
+    const apiKey = process.env.BREVO_API_KEY;
+    if (apiKey) {
+      this.brevoClient = new BrevoClient({ apiKey });
+      console.log("✅ Brevo Email Client initialized successfully");
+    } else {
+      console.log(
+        "ℹ️ BREVO_API_KEY not found in .env. Falling back to SMTP or simulated email.",
+      );
+    }
   }
 
   private getTransporter(): Transporter | null {
@@ -44,165 +72,138 @@ export class EmailService {
       console.log(`✅ SMTP Transporter initialized: ${host}:${port} (${user})`);
     } else {
       console.log(
-        "ℹ️ SMTP credentials not fully provided in .env. EmailService will log emails to console.",
+        "ℹ️ SMTP credentials not fully provided in .env. EmailService will log emails to console if Brevo is unavailable.",
       );
     }
   }
 
   /**
-   * Generic sendMail method
+   * Sends an email using Brevo (with fallback to SMTP / simulated logging).
+   * Supports calling with an email address string (sends dummy mail "Hello World")
+   * or with a full SendMailOptions object.
+   *
+   * @param emailOrOptions Recipient email string OR SendMailOptions object
+   * @param subject Optional email subject (defaults to "Hello World")
+   * @param content Optional email body (defaults to "Hello World")
    */
-  async sendMail(options: SendMailOptions): Promise<void> {
-    const from =
-      process.env.SMTP_FROM ||
-      '"Spectrum Smart System" <no-reply@spectrum.local>';
+  async sendMail(
+    emailOrOptions: string | SendMailOptions,
+    subject = "Hello World",
+    content = "Hello World",
+  ): Promise<any> {
+    let to: string;
+    let mailSubject: string;
+    let htmlContent: string;
+    let textContent: string;
 
+    if (typeof emailOrOptions === "string") {
+      to = emailOrOptions;
+      mailSubject = subject;
+      textContent = content;
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0;">
+          <h2 style="color: #00a76f; margin-bottom: 12px;">⚡ Spectrum Smart System</h2>
+          <p style="font-size: 16px; line-height: 1.5; color: #334155;">${content}</p>
+          <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 24px 0 12px 0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">This is an automated message from Spectrum Smart Systems.</p>
+        </div>
+      `;
+    } else {
+      to = emailOrOptions.to;
+      mailSubject = emailOrOptions.subject;
+      htmlContent = emailOrOptions.html;
+      textContent = emailOrOptions.text || emailOrOptions.html;
+    }
+
+    const senderEmail =
+      process.env.BREVO_SENDER_EMAIL ||
+      process.env.SMTP_USER ||
+      "no-reply@spectrum.local";
+    const senderName =
+      process.env.BREVO_SENDER_NAME || "Spectrum Smart System";
+
+    // 1. Send via Brevo if API key is provided
+    if (this.brevoClient) {
+      try {
+        const response =
+          await this.brevoClient.transactionalEmails.sendTransacEmail({
+            sender: { name: senderName, email: senderEmail },
+            to: [{ email: to }],
+            subject: mailSubject,
+            htmlContent,
+            textContent,
+          });
+        console.log(`📧 [Brevo] Email sent successfully to ${to}.`);
+        return response;
+      } catch (error: any) {
+        console.error("❌ Failed to send email via Brevo:", error);
+        throw error;
+      }
+    }
+
+    // 2. Fallback to SMTP transporter
     const transporter = this.getTransporter();
-
-    if (!transporter) {
-      console.log("\n================== 📧 SIMULATED EMAIL ==================");
-      console.log(`From:    ${from}`);
-      console.log(`To:      ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log("--------------------------------------------------------");
-      console.log(options.text || options.html);
-      console.log("========================================================\n");
-      return;
+    if (transporter) {
+      try {
+        const from = `"${senderName}" <${senderEmail}>`;
+        const info = await transporter.sendMail({
+          from,
+          to,
+          subject: mailSubject,
+          html: htmlContent,
+          text: textContent,
+        });
+        console.log(
+          `📧 [SMTP] Email sent successfully to ${to}. MessageId: ${info.messageId}`,
+        );
+        return info;
+      } catch (error) {
+        console.error("❌ Failed to send email via SMTP:", error);
+        throw error;
+      }
     }
 
-    try {
-      const info = await transporter.sendMail({
-        from,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-      });
-      console.log(`📧 Email sent successfully to ${options.to}. MessageId: ${info.messageId}`);
-    } catch (error) {
-      console.error("❌ Failed to send email via SMTP:", error);
-      throw error;
-    }
+    // 3. Fallback to simulated email in console
+    console.log("\n================== 📧 SIMULATED EMAIL ==================");
+    console.log(`From:    "${senderName}" <${senderEmail}>`);
+    console.log(`To:      ${to}`);
+    console.log(`Subject: ${mailSubject}`);
+    console.log("--------------------------------------------------------");
+    console.log(textContent);
+    console.log("========================================================\n");
+    return { simulated: true, to, subject: mailSubject };
   }
 
   /**
    * Sends a formatted, localized activation email based on user language ('ar' or 'en')
+   * Supports both 6-digit code for in-app verification and deep link / web link
    */
   async sendActivationEmail({
     to,
     name,
     token,
+    code,
     language = "ar",
   }: SendActivationMailOptions): Promise<void> {
     const isAr = language === "ar";
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const activationUrl = `${frontendUrl}/${language}/auth/activate?token=${encodeURIComponent(token)}`;
+    const mobileDeepLink = `mobile://activate?token=${encodeURIComponent(token)}`;
 
     const subject = isAr
       ? "تفعيل حسابك في منصة سبيكتروم (Spectrum)"
       : "Activate your Spectrum Account";
 
-    const html = isAr
-      ? `
-      <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 30px; direction: rtl; }
-          .container { max-width: 560px; margin: 0 auto; background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 36px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-          .header { text-align: center; margin-bottom: 28px; }
-          .logo { font-size: 26px; font-weight: 800; color: #00a76f; letter-spacing: 1px; }
-          .title { font-size: 20px; font-weight: 700; color: #ffffff; margin-top: 12px; margin-bottom: 8px; }
-          .content { font-size: 15px; line-height: 1.8; color: #cbd5e1; margin-bottom: 24px; }
-          .token-box { background: #0f172a; border: 1px dashed #00a76f; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0; word-break: break-all; }
-          .token-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
-          .token-code { font-family: monospace; font-size: 16px; font-weight: 700; color: #34d399; letter-spacing: 1px; }
-          .btn-container { text-align: center; margin: 28px 0; }
-          .btn { background-color: #00a76f; color: #ffffff !important; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(0, 167, 111, 0.4); }
-          .footer { font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #334155; padding-top: 20px; margin-top: 28px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">⚡ SPECTRUM</div>
-            <div class="title">مرحباً بك يا ${name}!</div>
-          </div>
-          <div class="content">
-            شكراً لانضمامك إلى منصة <strong>سبيكتروم</strong> لإدارة الأجهزة الذكية والأمان الكهربائي.<br>
-            لتفعيل حسابك والبدء في إدارة مقابس وأجهزة الحماية، يرجى النقر على زر التفعيل أدناه أو استخدام رمز التفعيل المرفق:
-          </div>
-          <div class="btn-container">
-            <a href="${activationUrl}" class="btn" target="_blank">تفعيل الحساب الآن</a>
-          </div>
-          <div class="token-box">
-            <div class="token-label">رمز التفعيل المباشر:</div>
-            <div class="token-code">${token}</div>
-          </div>
-          <div class="content" style="font-size: 13px; color: #94a3b8;">
-            ⚠️ تنبيه: صلاحية هذا الرمز تنتهي خلال <strong>ساعة واحدة</strong> من تاريخ إرسال هذه الرسالة.
-          </div>
-          <div class="footer">
-            إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة بأمان.<br>
-            &copy; ${new Date().getFullYear()} Spectrum Smart Systems. جميع الحقوق محفوظة.
-          </div>
-        </div>
-      </body>
-      </html>
-    `
-      : `
-      <!DOCTYPE html>
-      <html dir="ltr" lang="en">
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 30px; direction: ltr; }
-          .container { max-width: 560px; margin: 0 auto; background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 36px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-          .header { text-align: center; margin-bottom: 28px; }
-          .logo { font-size: 26px; font-weight: 800; color: #00a76f; letter-spacing: 1px; }
-          .title { font-size: 20px; font-weight: 700; color: #ffffff; margin-top: 12px; margin-bottom: 8px; }
-          .content { font-size: 15px; line-height: 1.8; color: #cbd5e1; margin-bottom: 24px; }
-          .token-box { background: #0f172a; border: 1px dashed #00a76f; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0; word-break: break-all; }
-          .token-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
-          .token-code { font-family: monospace; font-size: 16px; font-weight: 700; color: #34d399; letter-spacing: 1px; }
-          .btn-container { text-align: center; margin: 28px 0; }
-          .btn { background-color: #00a76f; color: #ffffff !important; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(0, 167, 111, 0.4); }
-          .footer { font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #334155; padding-top: 20px; margin-top: 28px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">⚡ SPECTRUM</div>
-            <div class="title">Welcome, ${name}!</div>
-          </div>
-          <div class="content">
-            Thank you for signing up for <strong>Spectrum</strong> Smart Device & Safety Management.<br>
-            To activate your account and start managing your power strips and safeguards, please click the button below:
-          </div>
-          <div class="btn-container">
-            <a href="${activationUrl}" class="btn" target="_blank">Activate Account</a>
-          </div>
-          <div class="token-box">
-            <div class="token-label">Direct Activation Token:</div>
-            <div class="token-code">${token}</div>
-          </div>
-          <div class="content" style="font-size: 13px; color: #94a3b8;">
-            ⚠️ Notice: This activation link and token expire in <strong>1 hour</strong>.
-          </div>
-          <div class="footer">
-            If you did not request this account, please ignore this email.<br>
-            &copy; ${new Date().getFullYear()} Spectrum Smart Systems. All rights reserved.
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    const html = renderActivationEmailHtml({
+      name,
+      code,
+      expirationMinutes: 60,
+      language,
+    });
 
     const text = isAr
-      ? `مرحباً ${name}، لتفعيل حسابك في سبيكتروم، افتح الرابط: ${activationUrl} أو استخدم رمز التفعيل: ${token} (صالح لمدة ساعة واحدة).`
-      : `Hello ${name}, to activate your Spectrum account, visit: ${activationUrl} or use token: ${token} (valid for 1 hour).`;
+      ? `مرحباً ${name}، رمز تفعيل حسابك في تطبيق سبيكتروم هو: ${code || token}`
+      : `Hello ${name}, your Spectrum account activation code is: ${code || token}`;
 
     await this.sendMail({
       to,
@@ -210,6 +211,51 @@ export class EmailService {
       html,
       text,
     });
+  }
+
+  /**
+   * Sends formatted, branded forgot password verification code email based on template in constants.ts
+   * @param options Recipient email, 6-digit verification code, recipient name, and expiration
+   */
+  async sendForgotPasswordMail({
+    to,
+    code,
+    name,
+    expirationMinutes = 10,
+  }: SendForgotPasswordMailOptions): Promise<any> {
+    const html = renderForgetPasswordEmailHtml({
+      code,
+      name,
+      expirationMinutes,
+    });
+
+    const subject = "Reset Your Spectrum Password";
+    const text = `Hello ${name || "there"}!\n\nWe received a request to reset the password for your Spectrum account.\nUse the verification code below to continue:\n\n${code}\n\nThis code will expire in ${expirationMinutes} minutes.\nFor your security, do not share this code with anyone.\n\nDidn't request a password reset?\nYou can safely ignore this email. Your account will remain secure.\n\nThanks,\nThe Spectrum Team`;
+
+    return await this.sendMail({
+      to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Alias matching the prompt's naming: sendForgetPasswodMail
+   */
+  async sendForgetPasswodMail(
+    options: SendForgotPasswordMailOptions,
+  ): Promise<any> {
+    return this.sendForgotPasswordMail(options);
+  }
+
+  /**
+   * Alias matching sendForgetPasswordMail
+   */
+  async sendForgetPasswordMail(
+    options: SendForgotPasswordMailOptions,
+  ): Promise<any> {
+    return this.sendForgotPasswordMail(options);
   }
 }
 

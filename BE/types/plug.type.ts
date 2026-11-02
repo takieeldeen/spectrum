@@ -5,11 +5,11 @@ export interface IPlug extends Document {
   _id: Types.ObjectId;
   user: Types.ObjectId | IUser | string;
   name: string;
-  arabicName?: string;
   serialNumber: string;
   SSID?: string;
   wifiPassword?: string;
   roomId?: string;
+  ipAddress?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

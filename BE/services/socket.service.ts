@@ -36,7 +36,6 @@ export function initializeSocket(httpServer: HttpServer) {
   // We instantly broadcast it to ONLY the users looking at this specific plug.
   hardwareService.on("hardware_data", (payload) => {
     io.to(`plug_${payload.plugId}`).emit("live_data", payload);
-    console.log(payload);
     metricsService.updateLiveTelemetry(
       payload.plugId,
       payload.outlets,
@@ -47,6 +46,11 @@ export function initializeSocket(httpServer: HttpServer) {
   hardwareService.on("guard_triggered", (payload) => {
     console.log("📢 Broadcasting guard_triggered event to clients:", payload);
     io.to(`plug_${payload.plugId}`).emit("guard_triggered", payload);
+  });
+
+  hardwareService.on("strip_verified", (payload) => {
+    console.log(`✅ Broadcasting strip_verified for plug_${payload.plugId}`);
+    io.to(`plug_${payload.plugId}`).emit("strip_verified", payload);
   });
 
   // 2. Handle Frontend connections
@@ -62,13 +66,30 @@ export function initializeSocket(httpServer: HttpServer) {
 
     // When user opens the details page:
     socket.on("join_plug", async (plugId: string) => {
-      if (!PlugService.ownPlug(plugId, user.id)) {
-        console.error("You don't own this plug");
-        return;
-      }
+      const roomName = `plug_${plugId}`;
+
+      // if (!(await PlugService.ownPlug(plugId, user.id))) {
+      //   console.error("You don't own this plug");
+      //   return;
+      // }
       // Put them in a dedicated Socket.io room for this plug
-      socket.join(`plug_${plugId}`);
-      console.log(`Client ${socket.id} joined room plug_${plugId}`);
+      if (!socket.rooms.has(roomName)) {
+        socket.join(roomName);
+        console.log(`Client ${socket.id} joined room ${roomName}`);
+      }
+
+      // Immediately send cached live_data if available
+      const cached = hardwareService.getLastPayload(plugId);
+      if (cached) {
+        socket.emit("live_data", { ...cached, plugId });
+      }
+
+      if (hardwareService.hasReceivedStripData(plugId)) {
+        socket.emit("strip_verified", {
+          plugId,
+          timestamp: hardwareService.getLastDataTimestamp(plugId),
+        });
+      }
 
       try {
         // Fetch the plug's serialNumber from the database
@@ -78,6 +99,15 @@ export function initializeSocket(httpServer: HttpServer) {
             `Connecting to plug ${plugId} with serial ${plug.serialNumber}`,
           );
           hardwareService.connectToPlug(plugId, plug.serialNumber);
+
+          if (!cached) {
+            const cachedBySerial = hardwareService.getLastPayload(
+              plug.serialNumber,
+            );
+            if (cachedBySerial) {
+              socket.emit("live_data", { ...cachedBySerial, plugId });
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to connect to plug hardware on join", err);

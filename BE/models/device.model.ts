@@ -4,6 +4,7 @@ import { IDevice } from '../types/device.type';
 const DeviceSchema: Schema<IDevice> = new Schema(
   {
     name: { type: String, required: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: false, index: true },
     plugId: { type: Schema.Types.ObjectId, ref: 'Plug', required: false },
     plugPort: { type: Number, required: false },
     lastTurnedOn: { type: Date, required: false },

@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import deviceController from '../controllers/device.controller';
+import authenticatedOnly from '../middlewares/auth.middleware';
 
 const router = Router();
+router.use(authenticatedOnly);
 
 // POST /devices
 router.post('/', deviceController.createDevice);

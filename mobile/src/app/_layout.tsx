@@ -29,6 +29,14 @@ export default function RootLayout() {
         },
       }),
   );
+  useEffect(() => {
+    async function test() {
+      await new Promise((res) => setTimeout(res, 3000));
+      if (fontsLoaded) {
+        SplashScreen.hideAsync();
+      }
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return null;
@@ -47,6 +55,9 @@ export default function RootLayout() {
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="login" />
+                <Stack.Screen name="register" />
+                <Stack.Screen name="verify-email" />
+                <Stack.Screen name="activate" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="forget-password" />
               </Stack>

@@ -2,8 +2,6 @@ export interface IPlug {
   _id?: string;
   user?: string;
   name: string;
-  arabicName?: string;
-  nameAr?: string;
   nameEn?: string;
   serialNumber: string;
   SSID?: string;
@@ -23,7 +21,6 @@ export interface IPlug {
 
 export interface CreatePlugPayload {
   name: string;
-  arabicName?: string;
   serialNumber: string;
   SSID?: string;
   wifiPassword?: string;
@@ -46,3 +43,17 @@ export interface PlugListApiResponse {
   message?: string;
   data: IPlug[];
 }
+
+export interface PlugVerificationData {
+  connected: boolean;
+  dataReceived: boolean;
+  lastDataTime?: number | null;
+  ipAddress?: string | null;
+}
+
+export interface PlugVerificationResponse {
+  success: boolean;
+  message?: string;
+  data: PlugVerificationData;
+}
+

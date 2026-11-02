@@ -17,6 +17,7 @@ import { useUpdateProfileMutation } from "@/api/user";
 import KwhPriceBottomSheet from "./kwh-price-bottom-sheet";
 import MonthlyBudgetBottomSheet from "./monthly-budget-bottom-sheet";
 import UnitBottomSheet, { PowerUnit } from "./unit-bottom-sheet";
+import i18n from "@/i18n";
 
 export interface PowerUsageSettingsProps {
   kwhPrice?: string;
@@ -52,14 +53,18 @@ const PowerUsageSettings: React.FC<PowerUsageSettingsProps> = ({
   const updateProfileMutation = useUpdateProfileMutation();
 
   const [alertEnabled, setAlertEnabled] = useState(
-    user?.overBudgetAlertEnabled ?? initialAlertEnabled
+    user?.overBudgetAlertEnabled ?? initialAlertEnabled,
   );
   const [isPriceSheetVisible, setIsPriceSheetVisible] = useState(false);
   const [numericPrice, setNumericPrice] = useState(user?.kwhCost ?? 0.7);
 
   const [isBudgetSheetVisible, setIsBudgetSheetVisible] = useState(false);
-  const [numericBudget, setNumericBudget] = useState(user?.monthlyBudget ?? 300);
-  const [alertPercent, setAlertPercent] = useState(user?.budgetAlertPercent ?? 80);
+  const [numericBudget, setNumericBudget] = useState(
+    user?.monthlyBudget ?? 300,
+  );
+  const [alertPercent, setAlertPercent] = useState(
+    user?.budgetAlertPercent ?? 80,
+  );
 
   const [isUnitSheetVisible, setIsUnitSheetVisible] = useState(false);
   const [powerUnit, setPowerUnit] = useState<PowerUnit>(user?.powerUnit ?? "W");
@@ -160,14 +165,17 @@ const PowerUsageSettings: React.FC<PowerUsageSettingsProps> = ({
   const chevronIconName = isRtl ? "chevron-left" : "chevron-right";
 
   const displayPrice =
-    kwhPrice ?? t("PROFILE.FORMATTED_PRICE", { price: numericPrice.toFixed(2) });
+    kwhPrice ??
+    t("PROFILE.FORMATTED_PRICE", { price: numericPrice.toFixed(2) });
 
   const displayBudget =
-    monthlyBudget ??
-    t("PROFILE.FORMATTED_BUDGET", { budget: numericBudget });
+    monthlyBudget ?? t("PROFILE.FORMATTED_BUDGET", { budget: numericBudget });
 
   const displayUnit =
-    unit ?? (powerUnit === "kW" ? t("PROFILE.UNIT_DISPLAY_KW") : t("PROFILE.UNIT_DISPLAY_W"));
+    unit ??
+    (powerUnit === "kW"
+      ? t("PROFILE.UNIT_DISPLAY_KW")
+      : t("PROFILE.UNIT_DISPLAY_W"));
 
   return (
     <View style={styles.container}>
@@ -343,6 +351,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       marginBottom: 12,
       paddingHorizontal: 4,
+      textAlign: i18n.language === "en" ? "left" : "right",
     },
     card: {
       backgroundColor: theme.cardBackground,
@@ -363,13 +372,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       }),
     },
     row: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: 14,
     },
     rowStart: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 12,
       flex: 1,
@@ -383,7 +392,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     textContainer: {
-      flex: 1,
+      flex: i18n.language === "en" ? 1 : 0,
       justifyContent: "center",
     },
     rowTitle: {
@@ -396,7 +405,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginTop: 2,
     },
     rowEnd: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 8,
     },

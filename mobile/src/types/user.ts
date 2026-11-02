@@ -65,6 +65,91 @@ export interface UploadAvatarResponse {
   };
 }
 
+export interface ForgetPasswordPayload {
+  email: string;
+}
+
+export interface ForgetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface SendOTPPayload {
+  email: string;
+}
+
+export interface SendOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface CheckOTPPayload {
+  email: string;
+  otp: string;
+}
+
+export interface CheckOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword?: string;
+  password?: string;
+  passwordConfirmation?: string;
+  confirmPassword?: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  name: string;
+  phoneNumber?: string;
+  password: string;
+  passwordConfirmation: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user: User;
+  };
+}
+
+export interface ActivateWithCodePayload {
+  email: string;
+  code: string;
+}
+
+export interface ActivateWithTokenPayload {
+  token: string;
+}
+
+export interface ActivateAccountResponse {
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    user: User;
+  };
+}
+
+export interface ResendActivationPayload {
+  email: string;
+}
+
+export interface ResendActivationResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   token: string | null;

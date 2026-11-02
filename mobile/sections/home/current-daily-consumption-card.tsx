@@ -94,9 +94,9 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
 
   // ------- Live cumulative energy from all outlets -------
   const totalCumulativeKwh = useMemo(() => {
-    return Object.values(liveData ?? {}).flatMap((strip) =>
-      Object.values(strip.outlets || {}),
-    ).reduce((acc, outlet) => acc + (outlet.energy_kwh || 0), 0);
+    return Object.values(liveData ?? {})
+      .flatMap((strip) => Object.values(strip.outlets || {}))
+      .reduce((acc, outlet) => acc + (outlet.energy_kwh || 0), 0);
   }, [liveData]);
 
   // ------- Build 12-point array -------
@@ -113,7 +113,10 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
     const latestMetric = raw[0];
     const lastCumulativeKwh: number = latestMetric?.cumulativeKwh ?? 0;
 
-    const nowWh = Math.max(0, Math.round((totalCumulativeKwh - lastCumulativeKwh) * 1000));
+    const nowWh = Math.max(
+      0,
+      Math.round((totalCumulativeKwh - lastCumulativeKwh) * 1000),
+    );
 
     const nowPoint = { kwh: nowWh / 1000, isNow: true };
 
@@ -163,22 +166,28 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
   const PADDING_HORIZONTAL = 8;
 
   const baselineY = graphHeight - PADDING_BOTTOM;
-  const availableHeight = Math.max(0, graphHeight - PADDING_TOP - PADDING_BOTTOM);
+  const availableHeight = Math.max(
+    0,
+    graphHeight - PADDING_TOP - PADDING_BOTTOM,
+  );
   const availableWidth = Math.max(0, graphWidth - PADDING_HORIZONTAL * 2);
 
-  const relativeGeometry = localizedArray.map((dataPoint: any, index: number) => {
-    const kwh = Math.max(0, dataPoint?.kwh || 0);
-    const wh = Math.round(kwh * 1000);
-    const ratio = MaximumWatt > 0 ? Math.min(1, Math.max(0, wh / MaximumWatt)) : 0;
-    const divisor = Math.max(1, localizedArray.length - 1);
-    const isNow = !!dataPoint?.isNow;
-    return {
-      x: PADDING_HORIZONTAL + (index / divisor) * availableWidth,
-      y: PADDING_TOP + (1 - ratio) * availableHeight,
-      wh,
-      isNow,
-    };
-  });
+  const relativeGeometry = localizedArray.map(
+    (dataPoint: any, index: number) => {
+      const kwh = Math.max(0, dataPoint?.kwh || 0);
+      const wh = Math.round(kwh * 1000);
+      const ratio =
+        MaximumWatt > 0 ? Math.min(1, Math.max(0, wh / MaximumWatt)) : 0;
+      const divisor = Math.max(1, localizedArray.length - 1);
+      const isNow = !!dataPoint?.isNow;
+      return {
+        x: PADDING_HORIZONTAL + (index / divisor) * availableWidth,
+        y: PADDING_TOP + (1 - ratio) * availableHeight,
+        wh,
+        isNow,
+      };
+    },
+  );
 
   const pathD = getSmoothPath(relativeGeometry, baselineY, PADDING_TOP);
   const firstPt = relativeGeometry[0];
@@ -255,7 +264,7 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
       </View>
       <View
         style={{
-          flexDirection: "row",
+          flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
           justifyContent: "space-between",
           paddingHorizontal: PADDING_HORIZONTAL,
         }}
@@ -265,6 +274,7 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
             key={`label-${i}`}
             style={{
               fontSize: 9,
+              color: "#FFFFFF",
               opacity: label === i18n.t("DASHBOARD.NOW") ? 1 : 0.7,
               fontWeight: label === i18n.t("DASHBOARD.NOW") ? "700" : "400",
             }}
@@ -278,4 +288,3 @@ const CurrentDailyConsumptionCard = ({ data }: { data?: any }) => {
 };
 
 export default CurrentDailyConsumptionCard;
-

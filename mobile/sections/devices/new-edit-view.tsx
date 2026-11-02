@@ -27,6 +27,7 @@ import { getAppFont } from "@/constants/fonts";
 import { IDevice } from "@/types/device";
 import { useCreateDevice, useUpdateDevice, useGetDevices } from "@/api/device";
 import { useGetPlugs } from "@/api/plug";
+import i18n from "@/i18n";
 
 export interface DeviceNewEditBottomSheetProps {
   visible: boolean;
@@ -122,9 +123,7 @@ export function DeviceNewEditBottomSheet({
 
     plugs.forEach((plug) => {
       const pId = plug._id!;
-      const plugName = isArabic
-        ? plug.arabicName || plug.name
-        : plug.name || plug.arabicName;
+      const plugName = plug.name;
 
       for (let port = 1; port <= 4; port++) {
         // Check if another device is currently using this socket
@@ -398,6 +397,11 @@ export function DeviceNewEditBottomSheet({
                     emptyLabel={t("DEVICE_FORM.UNASSIGNED_OPTION")}
                     emptyResultsText={t("DEVICE_FORM.NO_PLUGS_AVAILABLE")}
                     disabled={isBusy}
+                    containerStyle={{
+                      width: "100%",
+                      alignItems:
+                        i18n.language === "ar" ? "flex-end" : "flex-start",
+                    }}
                   />
                 )}
               />
@@ -515,6 +519,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     fieldGroup: {
       width: "100%",
+      alignItems: i18n.language === "ar" ? "flex-end" : "flex-start",
     },
     label: {
       fontSize: 14,

@@ -69,6 +69,11 @@ const UserSchema: Schema<IUser> = new Schema(
       required: false,
       select: false,
     },
+    activationCode: {
+      type: String,
+      required: false,
+      select: false,
+    },
     activationTokenExpiration: {
       type: Date,
       required: false,
@@ -105,6 +110,22 @@ const UserSchema: Schema<IUser> = new Schema(
       },
       default: "W",
     },
+    OTP: {
+      type: String,
+      required: false,
+      select: false,
+      default: null,
+    },
+    OTPExpiration: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+    OTPChecked: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -112,6 +133,8 @@ const UserSchema: Schema<IUser> = new Schema(
       transform(_doc, ret: Record<string, any>) {
         delete ret.password;
         delete ret.activationToken;
+        delete ret.activationCode;
+        delete ret.OTP;
         delete ret.__v;
         return ret;
       },
@@ -140,16 +163,18 @@ UserSchema.methods.comparePassword = async function (
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Recreates activationToken with new expiration if user is INACTIVE
-UserSchema.methods.resendInvitation = function (): string {
+// Recreates activationToken and activationCode with new expiration if user is INACTIVE
+UserSchema.methods.resendInvitation = function (): { token: string; code: string } {
   if (this.status !== "INACTIVE") {
     throw new Error("User is not in INACTIVE status");
   }
 
   const token = crypto.randomBytes(32).toString("hex");
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
   this.activationToken = token;
+  this.activationCode = code;
   this.activationTokenExpiration = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-  return token;
+  return { token, code };
 };
 
 export default mongoose.model<IUser>("User", UserSchema);

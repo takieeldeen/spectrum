@@ -32,7 +32,6 @@ import { useGetWifiList, useCreateWifi } from "@/api/wifi";
 
 interface FormValues {
   name: string;
-  arabicName?: string;
   serialNumber: string;
   SSID?: string;
   wifiPassword?: string;
@@ -87,7 +86,9 @@ export function PlugNewEditView() {
     );
 
   // State tracking assigned devices across outlets for dynamic filtering WITHOUT useEffect
-  const [selectedDevices, setSelectedDevices] = useState<Record<number, string>>({
+  const [selectedDevices, setSelectedDevices] = useState<
+    Record<number, string>
+  >({
     1: existingPlug?.device1 || "",
     2: existingPlug?.device2 || "",
     3: existingPlug?.device3 || "",
@@ -99,9 +100,8 @@ export function PlugNewEditView() {
     name: Yup.string()
       .trim()
       .required(
-        t("COMMON_VALIDATIONS.REQUIRED_FIELD", { field: t("ENGLISH_NAME") }),
+        t("COMMON_VALIDATIONS.REQUIRED_FIELD", { field: t("PLUG_NAME") }),
       ),
-    arabicName: Yup.string().trim().nullable().optional(),
     serialNumber: Yup.string()
       .trim()
       .required(
@@ -117,15 +117,14 @@ export function PlugNewEditView() {
 
   const defaultValues = useMemo<FormValues>(
     () => ({
-      name: isEdit ? (existingPlug?.name || existingPlug?.nameEn || "") : "",
-      arabicName: isEdit ? (existingPlug?.arabicName || existingPlug?.nameAr || "") : "",
-      serialNumber: isEdit ? (existingPlug?.serialNumber || "") : "",
-      SSID: isEdit ? (existingPlug?.SSID || "") : "",
-      wifiPassword: isEdit ? (existingPlug?.wifiPassword || "") : "",
-      device1: isEdit ? (existingPlug?.device1 || "") : "",
-      device2: isEdit ? (existingPlug?.device2 || "") : "",
-      device3: isEdit ? (existingPlug?.device3 || "") : "",
-      device4: isEdit ? (existingPlug?.device4 || "") : "",
+      name: isEdit ? existingPlug?.name || existingPlug?.nameEn || "" : "",
+      serialNumber: isEdit ? existingPlug?.serialNumber || "" : "",
+      SSID: isEdit ? existingPlug?.SSID || "" : "",
+      wifiPassword: isEdit ? existingPlug?.wifiPassword || "" : "",
+      device1: isEdit ? existingPlug?.device1 || "" : "",
+      device2: isEdit ? existingPlug?.device2 || "" : "",
+      device3: isEdit ? existingPlug?.device3 || "" : "",
+      device4: isEdit ? existingPlug?.device4 || "" : "",
     }),
     [existingPlug, isEdit],
   );
@@ -146,7 +145,6 @@ export function PlugNewEditView() {
     if (fetchedPlug) {
       const populatedValues: FormValues = {
         name: fetchedPlug.name || fetchedPlug.nameEn || "",
-        arabicName: fetchedPlug.arabicName || fetchedPlug.nameAr || "",
         serialNumber: fetchedPlug.serialNumber || "",
         SSID: fetchedPlug.SSID || "",
         wifiPassword: fetchedPlug.wifiPassword || "",
@@ -239,7 +237,6 @@ export function PlugNewEditView() {
           id: plugId,
           payload: {
             name: data.name.trim(),
-            arabicName: data.arabicName?.trim() || undefined,
             serialNumber: data.serialNumber.trim(),
             SSID: data.SSID?.trim() || undefined,
             wifiPassword: data.wifiPassword || undefined,
@@ -252,9 +249,7 @@ export function PlugNewEditView() {
 
         setSnackbar({
           open: true,
-          message: isArabic
-            ? "تم تحديث المشترك بنجاح"
-            : "Plug was updated successfully",
+          message: t("PLUG_UPDATED_SUCCESSFULLY"),
         });
 
         setTimeout(() => {
@@ -263,7 +258,6 @@ export function PlugNewEditView() {
       } else {
         const newPlug = await createPlugMutation.mutateAsync({
           name: data.name.trim(),
-          arabicName: data.arabicName?.trim() || undefined,
           serialNumber: data.serialNumber.trim(),
           SSID: data.SSID?.trim() || undefined,
           wifiPassword: data.wifiPassword || undefined,
@@ -344,13 +338,7 @@ export function PlugNewEditView() {
             <ThemedText
               style={[styles.subtitle, { color: theme.textSecondary }]}
             >
-              {isEdit
-                ? isArabic
-                  ? "تعديل تفاصيل المشترك الذكي"
-                  : "Update smart power strip settings"
-                : isArabic
-                  ? "إضافة مشترك طاقة ذكي جديد للنظام"
-                  : "Add a new smart power strip to your network"}
+              {isEdit ? t("EDIT_PLUG_SUBTITLE") : t("NEW_PLUG_SUBTITLE")}
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -372,10 +360,10 @@ export function PlugNewEditView() {
           bounces={false}
           overScrollMode="never"
         >
-          {/* English Name Field */}
+          {/* Plug Name Field */}
           <View style={styles.fieldGroup}>
             <ThemedText style={[styles.label, { color: theme.text }]}>
-              {t("ENGLISH_NAME")}
+              {t("PLUG_NAME")}
             </ThemedText>
             <Controller
               control={control}
@@ -400,11 +388,7 @@ export function PlugNewEditView() {
                         textAlign: isArabic ? "right" : "left",
                       },
                     ]}
-                    placeholder={
-                      isArabic
-                        ? "مثال: Living Room Strip"
-                        : "e.g. Living Room Strip"
-                    }
+                    placeholder={t("PLUG_NAME_PLACEHOLDER")}
                     placeholderTextColor={`${theme.textSecondary}80`}
                     value={value}
                     onBlur={onBlur}
@@ -418,51 +402,6 @@ export function PlugNewEditView() {
             {errors.name ? (
               <ThemedText style={styles.errorText}>
                 {errors.name.message}
-              </ThemedText>
-            ) : null}
-          </View>
-
-          {/* Arabic Name Field */}
-          <View style={styles.fieldGroup}>
-            <ThemedText style={[styles.label, { color: theme.text }]}>
-              {t("ARABIC_NAME")}
-            </ThemedText>
-            <Controller
-              control={control}
-              name="arabicName"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    {
-                      borderColor: errors.arabicName
-                        ? "#DC2626"
-                        : `${theme.textSecondary}25`,
-                    },
-                  ]}
-                >
-                  <Lucide name="type" size={18} color={theme.textSecondary} />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: theme.text,
-                        textAlign: isArabic ? "right" : "left",
-                      },
-                    ]}
-                    placeholder={t("PLUG_NAME_PLACEHOLDER")}
-                    placeholderTextColor={`${theme.textSecondary}80`}
-                    value={value || ""}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    editable={!isBusy}
-                  />
-                </View>
-              )}
-            />
-            {errors.arabicName ? (
-              <ThemedText style={styles.errorText}>
-                {errors.arabicName.message}
               </ThemedText>
             ) : null}
           </View>
@@ -537,7 +476,9 @@ export function PlugNewEditView() {
               activeOpacity={0.7}
             >
               <Lucide name="plus" size={15} color={theme.primary} />
-              <ThemedText style={[styles.addWifiHeaderText, { color: theme.primary }]}>
+              <ThemedText
+                style={[styles.addWifiHeaderText, { color: theme.primary }]}
+              >
                 {t("ADD_WIFI_NETWORK")}
               </ThemedText>
             </TouchableOpacity>
@@ -569,7 +510,10 @@ export function PlugNewEditView() {
                 {wifiList.length === 0 && (
                   <View style={styles.emptyWifiPrompt}>
                     <ThemedText
-                      style={[styles.emptyWifiPromptText, { color: theme.textSecondary }]}
+                      style={[
+                        styles.emptyWifiPromptText,
+                        { color: theme.textSecondary },
+                      ]}
                     >
                       {t("NO_WIFI_MATCH")}
                     </ThemedText>
@@ -677,7 +621,10 @@ export function PlugNewEditView() {
                     {t("ADD_WIFI_TITLE")}
                   </ThemedText>
                   <ThemedText
-                    style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+                    style={[
+                      styles.modalSubtitle,
+                      { color: theme.textSecondary },
+                    ]}
                   >
                     {t("ADD_WIFI_SUBTITLE")}
                   </ThemedText>
@@ -811,7 +758,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       width: 44,
       height: 5,
       borderRadius: 3,
-      backgroundColor: theme.textSecondary ? `${theme.textSecondary}40` : "#D1D5DB",
+      backgroundColor: theme.textSecondary
+        ? `${theme.textSecondary}40`
+        : "#D1D5DB",
     },
     header: {
       flexDirection: "row",

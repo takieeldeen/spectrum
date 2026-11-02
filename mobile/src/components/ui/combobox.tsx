@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { Lucide } from "@react-native-vector-icons/lucide";
 
@@ -39,6 +41,9 @@ export interface ComboboxProps<T = ComboboxDefaultOption> {
   allowEmpty?: boolean;
   emptyLabel?: string;
   emptyResultsText?: string;
+  containerStyle?: StyleProp<ViewStyle>;
+  triggerStyle?: StyleProp<ViewStyle>;
+  showSearch?: boolean;
 }
 
 export function Combobox<T = ComboboxDefaultOption>({
@@ -58,6 +63,9 @@ export function Combobox<T = ComboboxDefaultOption>({
   allowEmpty = true,
   emptyLabel = "None",
   emptyResultsText = "No options found",
+  containerStyle,
+  triggerStyle,
+  showSearch = true,
 }: ComboboxProps<T>) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -90,7 +98,7 @@ export function Combobox<T = ComboboxDefaultOption>({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label ? (
         <ThemedText style={[styles.label, { color: theme.text }]}>
           {label}
@@ -108,6 +116,7 @@ export function Combobox<T = ComboboxDefaultOption>({
             borderColor: error ? "#DC2626" : `${theme.textSecondary}25`,
             opacity: disabled ? 0.6 : 1,
           },
+          triggerStyle,
         ]}
       >
         {leadIcon ? (
@@ -182,30 +191,32 @@ export function Combobox<T = ComboboxDefaultOption>({
             </View>
 
             {/* Search Input */}
-            <View
-              style={[
-                styles.searchWrapper,
-                {
-                  backgroundColor: theme.backgroundElement || "#F3F4F6",
-                  borderColor: `${theme.textSecondary}25`,
-                },
-              ]}
-            >
-              <Lucide name="search" size={18} color={theme.textSecondary} />
-              <TextInput
-                style={[styles.searchInput, { color: theme.text }]}
-                placeholder={searchPlaceholder}
-                placeholderTextColor={`${theme.textSecondary}80`}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-              />
-              {searchQuery ? (
-                <Pressable onPress={() => setSearchQuery("")}>
-                  <Lucide name="x" size={16} color={theme.textSecondary} />
-                </Pressable>
-              ) : null}
-            </View>
+            {showSearch ? (
+              <View
+                style={[
+                  styles.searchWrapper,
+                  {
+                    backgroundColor: theme.backgroundElement || "#F3F4F6",
+                    borderColor: `${theme.textSecondary}25`,
+                  },
+                ]}
+              >
+                <Lucide name="search" size={18} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.searchInput, { color: theme.text }]}
+                  placeholder={searchPlaceholder}
+                  placeholderTextColor={`${theme.textSecondary}80`}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCorrect={false}
+                />
+                {searchQuery ? (
+                  <Pressable onPress={() => setSearchQuery("")}>
+                    <Lucide name="x" size={16} color={theme.textSecondary} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Options List */}
             <ScrollView

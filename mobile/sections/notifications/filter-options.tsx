@@ -9,6 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
+import i18n from "@/i18n";
 
 export type FilterOptions = "ALL" | "UNREAD" | "ALERTS" | "DEVICES" | "GUARDS";
 
@@ -111,7 +112,7 @@ export const FilterOptions = ({
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     container: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
       alignItems: "center",
       gap: 8,
       paddingVertical: 4,
@@ -129,7 +130,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     inactiveChip: {
       backgroundColor: theme.backgroundElement,
       borderWidth: 1,
-      borderColor: theme.isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+      borderColor: theme.isDark
+        ? "rgba(255, 255, 255, 0.08)"
+        : "rgba(0, 0, 0, 0.06)",
     },
     pressed: {
       opacity: 0.88,
@@ -148,4 +151,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default FilterOptions;
-

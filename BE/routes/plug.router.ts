@@ -14,6 +14,9 @@ router.get("/", plugController.getAllPlugs);
 // GET /plugs/:plugId
 router.get("/:plugId", plugController.getPlugById);
 
+// GET /plugs/:plugId/verify
+router.get("/:plugId/verify", plugController.verifyPlugConnection);
+
 // PUT /plugs/:id
 router.put("/:id", plugController.updatePlug);
 

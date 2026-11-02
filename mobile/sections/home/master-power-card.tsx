@@ -19,13 +19,50 @@ import { useTranslation } from "react-i18next";
 import { usePlugs } from "@/providers/plug.provider";
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
+import { Fade } from "@/components/ui/fade";
 
 export interface MasterPowerCardProps {
   onSuccess?: () => void;
+  isEmpty?: boolean;
 }
+
+/* ==========================================================================
+   EMPTY STATE COMPONENT (For General Master Power Switch)
+   ========================================================================== */
+
+export interface MasterPowerEmptyViewProps {
+  styles: ReturnType<typeof createStyles>;
+  theme: ReturnType<typeof useTheme>;
+}
+
+export const MasterPowerEmptyView: React.FC<MasterPowerEmptyViewProps> = ({
+  styles,
+  theme,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.emptyCardContainer}>
+      <View style={styles.emptyIconBadge}>
+        <Lucide name="power-off" size={26} color={theme.textSecondary} />
+      </View>
+      <ThemedText weight="700" style={styles.emptyTitle}>
+        {t("DASHBOARD.NO_OUTLETS_TO_CONTROL")}
+      </ThemedText>
+      <ThemedText style={styles.emptySubtitle}>
+        {t("DASHBOARD.NO_OUTLETS_TO_CONTROL_HINT")}
+      </ThemedText>
+    </View>
+  );
+};
+
+/* ==========================================================================
+   MAIN MASTER POWER CARD COMPONENT
+   ========================================================================== */
 
 export const MasterPowerCard: React.FC<MasterPowerCardProps> = ({
   onSuccess,
+  isEmpty: propIsEmpty,
 }) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -34,6 +71,17 @@ export const MasterPowerCard: React.FC<MasterPowerCardProps> = ({
   const { liveData, connected, toggleAll } = usePlugs();
   const [isProcessing, setIsProcessing] = useState(false);
   const [justToggled, setJustToggled] = useState(false);
+
+  const stripIds = useMemo(() => Object.keys(liveData ?? {}), [liveData]);
+  const totalOutletsCount = useMemo(() => {
+    return stripIds.reduce(
+      (sum, id) => sum + Object.keys(liveData?.[id]?.outlets ?? {}).length,
+      0,
+    );
+  }, [liveData, stripIds]);
+
+  // Determine empty state: zero configured outlets across all strips or prop override
+  const isCardEmpty = propIsEmpty ?? totalOutletsCount === 0;
 
   const styles = useMemo(
     () => createStyles(theme, isRtl, isArabic),
@@ -45,7 +93,6 @@ export const MasterPowerCard: React.FC<MasterPowerCardProps> = ({
     setIsProcessing(true);
 
     try {
-      const stripIds = Object.keys(liveData ?? {});
       if (stripIds.length > 0 && connected) {
         stripIds.forEach((stripId) => {
           toggleAll(stripId, "off");
@@ -65,90 +112,99 @@ export const MasterPowerCard: React.FC<MasterPowerCardProps> = ({
   };
 
   return (
-    <View style={styles.cardContainer}>
-      {/* Background Gradient & Organic Decorative Curves */}
-      <View style={StyleSheet.absoluteFill}>
-        <Svg width="100%" height="100%">
-          <Defs>
-            <LinearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#0B875D" />
-              <Stop offset="50%" stopColor="#0A7A55" />
-              <Stop offset="100%" stopColor="#066746" />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" rx={26} fill="url(#cardGrad)" />
-          {/* Subtle decorative wavy curves */}
-          <Path
-            d="M -20,120 Q 80,60 220,130 T 450,110 L 450,220 L -20,220 Z"
-            fill="rgba(255, 255, 255, 0.05)"
-          />
-          <Path
-            d="M -30,80 Q 70,140 180,90 T 460,130 L 460,220 L -30,220 Z"
-            fill="rgba(0, 0, 0, 0.04)"
-          />
-        </Svg>
-      </View>
+    <View style={{ width: "100%" }}>
+      {/* 1. Empty State View with Fade */}
+      <Fade in={isCardEmpty} duration={250} unmountOnExit>
+        <MasterPowerEmptyView styles={styles} theme={theme} />
+      </Fade>
 
-      {/* Top Section: Info/Icon (at start) and Concentric Power Button (at end) */}
-      <View style={styles.topRow}>
-        {/* Info Container: Title, Subtitle, and Plug-off Icon Badge */}
-        <View style={styles.infoAndIconContainer}>
-          {/* Plug Icon with Diagonal Slash Badge */}
-          <View style={styles.plugSlashBadge}>
-            <Lucide name="plug" size={26} color="#FFFFFF" />
-            <View style={styles.slashLine} />
-          </View>
-
-          {/* Text Details */}
-          <View style={styles.textContainer}>
-            <ThemedText style={styles.cardTitle}>
-              {t("DASHBOARD.TURN_OFF_ALL_OUTLETS")}
-            </ThemedText>
-            <ThemedText style={styles.cardSubtitle}>
-              {t("DASHBOARD.TURN_OFF_ALL_SUBTITLE")}
-            </ThemedText>
-          </View>
+      {/* 2. Loaded Master Switch Card with Fade */}
+      <Fade
+        in={!isCardEmpty}
+        duration={250}
+        unmountOnExit
+        style={styles.cardContainer}
+      >
+        {/* Background Gradient & Organic Decorative Curves */}
+        <View style={StyleSheet.absoluteFill}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#0B875D" />
+                <Stop offset="50%" stopColor="#0A7A55" />
+                <Stop offset="100%" stopColor="#066746" />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" rx={26} fill="url(#cardGrad)" />
+            {/* Subtle decorative wavy curves */}
+            <Path
+              d="M -20,120 Q 80,60 220,130 T 450,110 L 450,220 L -20,220 Z"
+              fill="rgba(255, 255, 255, 0.05)"
+            />
+            <Path
+              d="M -30,80 Q 70,140 180,90 T 460,130 L 460,220 L -30,220 Z"
+              fill="rgba(0, 0, 0, 0.04)"
+            />
+          </Svg>
         </View>
 
-        {/* Concentric Power Button Graphic */}
-        <View style={styles.concentricWrapper}>
-          {/* Outermost Ripple */}
-          <View style={styles.rippleOuter}>
-            {/* Middle Ripple */}
-            <View style={styles.rippleMiddle}>
-              {/* Inner Circle with Power Icon */}
-              <View style={styles.powerCircleInner}>
-                <Lucide
-                  name="power"
-                  size={28}
-                  color="#FFFFFF"
-                />
+        {/* Top Section: Info/Icon (at start) and Concentric Power Button (at end) */}
+        <View style={styles.topRow}>
+          {/* Info Container: Title, Subtitle, and Plug-off Icon Badge */}
+          <View style={styles.infoAndIconContainer}>
+            {/* Plug Icon with Diagonal Slash Badge */}
+            <View style={styles.plugSlashBadge}>
+              <Lucide name="plug" size={26} color="#FFFFFF" />
+              <View style={styles.slashLine} />
+            </View>
+
+            {/* Text Details */}
+            <View style={styles.textContainer}>
+              <ThemedText style={styles.cardTitle}>
+                {t("DASHBOARD.TURN_OFF_ALL_OUTLETS")}
+              </ThemedText>
+              <ThemedText style={styles.cardSubtitle}>
+                {t("DASHBOARD.TURN_OFF_ALL_SUBTITLE")}
+              </ThemedText>
+            </View>
+          </View>
+
+          {/* Concentric Power Button Graphic */}
+          <View style={styles.concentricWrapper}>
+            {/* Outermost Ripple */}
+            <View style={styles.rippleOuter}>
+              {/* Middle Ripple */}
+              <View style={styles.rippleMiddle}>
+                {/* Inner Circle with Power Icon */}
+                <View style={styles.powerCircleInner}>
+                  <Lucide name="power" size={28} color="#FFFFFF" />
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* Bottom Full-Width Action Button */}
-      <Pressable
-        onPress={handleTurnOffAll}
-        disabled={isProcessing}
-        style={({ pressed }) => [
-          styles.actionButton,
-          pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-        ]}
-        accessibilityLabel={t("DASHBOARD.TURN_OFF_ALL_OUTLETS")}
-      >
-        {isProcessing ? (
-          <ActivityIndicator color="#FFFFFF" size="small" />
-        ) : (
-          <ThemedText style={styles.actionButtonText}>
-            {justToggled
-              ? t("DASHBOARD.ALL_TURNED_OFF")
-              : t("DASHBOARD.TURN_OFF_ALL")}
-          </ThemedText>
-        )}
-      </Pressable>
+        {/* Bottom Full-Width Action Button */}
+        <Pressable
+          onPress={handleTurnOffAll}
+          disabled={isProcessing}
+          style={({ pressed }) => [
+            styles.actionButton,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+          ]}
+          accessibilityLabel={t("DASHBOARD.TURN_OFF_ALL_OUTLETS")}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <ThemedText style={styles.actionButtonText}>
+              {justToggled
+                ? t("DASHBOARD.ALL_TURNED_OFF")
+                : t("DASHBOARD.TURN_OFF_ALL")}
+            </ThemedText>
+          )}
+        </Pressable>
+      </Fade>
     </View>
   );
 };
@@ -160,9 +216,14 @@ const createStyles = (
   isRtl: boolean,
   isArabic: boolean,
 ) => {
+  const isDark = theme.isDark;
   const naturalRow = isArabic
-    ? I18nManager.isRTL ? "row" : "row-reverse"
-    : I18nManager.isRTL ? "row-reverse" : "row";
+    ? I18nManager.isRTL
+      ? "row"
+      : "row-reverse"
+    : I18nManager.isRTL
+      ? "row-reverse"
+      : "row";
 
   return StyleSheet.create({
     cardContainer: {
@@ -298,6 +359,55 @@ const createStyles = (
       fontWeight: "800",
       color: "#FFFFFF",
       textAlign: "center",
+    },
+    emptyCardContainer: {
+      width: "100%",
+      borderRadius: 26,
+      backgroundColor: isDark ? theme.backgroundElement : "#FFFFFF",
+      borderWidth: 1,
+      borderColor: isDark
+        ? "rgba(255, 255, 255, 0.08)"
+        : "rgba(0, 0, 0, 0.05)",
+      paddingHorizontal: 20,
+      paddingVertical: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      minHeight: 160,
+      marginBottom: 8,
+      ...Platform.select({
+        ios: {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: isDark ? 0.25 : 0.05,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    emptyIconBadge: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: theme.tintedIconBackground,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 2,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: theme.text,
+      textAlign: "center",
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: theme.textSecondary,
+      textAlign: "center",
+      maxWidth: 290,
     },
   });
 };

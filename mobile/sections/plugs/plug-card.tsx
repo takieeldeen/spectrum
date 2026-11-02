@@ -41,8 +41,6 @@ export interface IPlug {
   id?: string;
   user?: string;
   name: string;
-  arabicName?: string;
-  nameAr?: string;
   nameEn?: string;
   serialNumber: string;
   ipAddress?: string;
@@ -63,6 +61,7 @@ export interface PlugCardProps {
   onToggleMaster?: (state: boolean) => void;
   onEdit?: (plug: IPlug) => void;
   onDelete?: (plug: IPlug) => void;
+  onActivate?: (plug: IPlug) => void;
 }
 
 const DEFAULT_OUTLETS: Record<
@@ -103,11 +102,11 @@ export function PlugCard({
   onToggleMaster,
   onEdit,
   onDelete,
+  onActivate,
 }: PlugCardProps) {
   const router = useRouter();
   const theme = useTheme();
   const { t, i18n } = useTranslation();
-  const isArabic = i18n.language?.startsWith("ar") ?? false;
   const isDark = theme.isDark;
   const {
     liveData,
@@ -119,21 +118,34 @@ export function PlugCard({
   } = useControlStrip({
     stripId: plug?._id!,
   });
-  const connected = !stripLoading && stripConnected;
+  const isLiveConnected = !stripLoading && stripConnected;
+  const connected =
+    isLiveConnected || Boolean(plug?.connected || plug?.isOnline);
   const popover = usePopover();
   const { showConfirmation, confirmationProps } = useConfirmationMessage();
   const deleteMutation = useDeletePlug();
 
   // Plug info
-  const plugName =
-    (isArabic
-      ? plug?.arabicName || plug?.nameAr
-      : plug?.name || plug?.nameEn) ||
-    plug?.arabicName ||
-    plug?.name ||
-    t("DEFAULT_PLUG_NAME");
+  const plugName = plug?.name || plug?.nameEn || t("DEFAULT_PLUG_NAME");
 
   const plugId = plug?._id || plug?.id;
+
+  const handleActivate = () => {
+    popover.onClose();
+    if (onActivate && plug) {
+      onActivate(plug);
+      return;
+    }
+    if (plugId) {
+      router.push({
+        pathname: "/(tabs)/plugs/activate/[plugId]",
+        params: {
+          plugId,
+          serialNumber: plug?.serialNumber,
+        },
+      } as any);
+    }
+  };
 
   const handleEdit = () => {
     popover.onClose();
@@ -542,6 +554,12 @@ export function PlugCard({
 
       {/* Popover Action Menu */}
       <Popover {...popover} placement="bottom-end">
+        <Popover.Item
+          icon={<Lucide name="zap" size={18} color={theme.text} />}
+          onPress={handleActivate}
+        >
+          {t("ACTIVATE")}
+        </Popover.Item>
         <Popover.Item
           icon={<Lucide name="pencil" size={18} color={theme.text} />}
           onPress={handleEdit}

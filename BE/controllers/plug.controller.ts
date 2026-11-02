@@ -19,10 +19,11 @@ export class PlugController {
       const { device1, device2, device3, device4, ...plugData } = req.body;
 
       // If wifiPassword not explicitly provided but SSID is, look up saved Wi-Fi credentials
+
       if (!plugData.wifiPassword && plugData.SSID) {
         const savedWifi = await wifiService.getWifiWithPassword(
           userId,
-          plugData.SSID
+          plugData.SSID,
         );
         if (savedWifi?.password) {
           plugData.wifiPassword = savedWifi.password;
@@ -73,7 +74,7 @@ export class PlugController {
       if (!plugData.wifiPassword && plugData.SSID) {
         const savedWifi = await wifiService.getWifiWithPassword(
           userId,
-          plugData.SSID
+          plugData.SSID,
         );
         if (savedWifi?.password) {
           plugData.wifiPassword = savedWifi.password;
@@ -123,11 +124,16 @@ export class PlugController {
       }
 
       const plugs = await plugService.getAllPlugs(userId);
-      const hardwareService = (await import("../services/hardware.service")).default;
+      const hardwareService = (await import("../services/hardware.service"))
+        .default;
 
       const enrichedPlugs = plugs.map((plug) => {
-        const pObj = (plug as any).toObject ? (plug as any).toObject() : { ...plug };
-        const cleanSerial = pObj.serialNumber ? hardwareService.normalizeSerial(pObj.serialNumber) : "";
+        const pObj = (plug as any).toObject
+          ? (plug as any).toObject()
+          : { ...plug };
+        const cleanSerial = pObj.serialNumber
+          ? hardwareService.normalizeSerial(pObj.serialNumber)
+          : "";
         const isConnected = cleanSerial
           ? hardwareService.isSerialConnected(cleanSerial)
           : hardwareService.isPlugConnected(pObj._id?.toString());
@@ -177,18 +183,22 @@ export class PlugController {
           message: "Plug not found",
         });
       }
-
-      const hardwareService = (await import("../services/hardware.service")).default;
-      const cleanSerial = plug.serialNumber ? hardwareService.normalizeSerial(plug.serialNumber) : "";
+      const hardwareService = (await import("../services/hardware.service"))
+        .default;
+      const cleanSerial = plug.serialNumber
+        ? hardwareService.normalizeSerial(plug.serialNumber)
+        : "";
       const isConnected = cleanSerial
         ? hardwareService.isSerialConnected(cleanSerial)
         : hardwareService.isPlugConnected(plugId);
       const stripIp = cleanSerial
         ? hardwareService.getStripIpBySerial(cleanSerial)
         : hardwareService.getStripIpByPlugId(plugId);
-
-      const plugObj = (plug as any).toObject ? (plug as any).toObject() : { ...plug };
-      const assignedDevices = await plugService.getAssignedDevicesForPlug(plugId);
+      const plugObj = (plug as any).toObject
+        ? (plug as any).toObject()
+        : { ...plug };
+      const assignedDevices =
+        await plugService.getAssignedDevicesForPlug(plugId);
 
       return res.status(200).json({
         success: true,
@@ -232,9 +242,13 @@ export class PlugController {
       }
 
       const outletNum = Number(outlet);
-      const normalizedState = typeof state === "string" ? state.toLowerCase() : "";
+      const normalizedState =
+        typeof state === "string" ? state.toLowerCase() : "";
 
-      if (!outletNum || (normalizedState !== "on" && normalizedState !== "off")) {
+      if (
+        !outletNum ||
+        (normalizedState !== "on" && normalizedState !== "off")
+      ) {
         return res.status(400).json({
           success: false,
           message:
@@ -246,7 +260,7 @@ export class PlugController {
         plugId,
         outletNum,
         normalizedState as "on" | "off",
-        userId
+        userId,
       );
 
       return res.status(200).json(result);
@@ -289,6 +303,66 @@ export class PlugController {
       return res.status(500).json({
         success: false,
         message: error.message || "An error occurred while deleting the plug.",
+      });
+    }
+  };
+
+  verifyPlugConnection = async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?._id?.toString() || (req as any).user?.id || (req as any).userId;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const { plugId } = req.params;
+      const plug = await plugService.getPlugById(plugId, userId);
+      if (!plug) {
+        return res.status(404).json({
+          success: false,
+          message: "Plug not found",
+        });
+      }
+
+      const hardwareService = (await import("../services/hardware.service"))
+        .default;
+      const cleanSerial = plug.serialNumber
+        ? hardwareService.normalizeSerial(plug.serialNumber)
+        : "";
+
+      const isConnected = cleanSerial
+        ? hardwareService.isSerialConnected(cleanSerial)
+        : hardwareService.isPlugConnected(plugId);
+
+      const dataReceived =
+        hardwareService.hasReceivedStripData(cleanSerial) ||
+        hardwareService.hasReceivedStripData(plugId);
+
+      const lastDataTime =
+        hardwareService.getLastDataTimestamp(cleanSerial) ||
+        hardwareService.getLastDataTimestamp(plugId);
+
+      const ipAddress = cleanSerial
+        ? hardwareService.getStripIpBySerial(cleanSerial)
+        : hardwareService.getStripIpByPlugId(plugId);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          connected: isConnected,
+          dataReceived,
+          lastDataTime,
+          ipAddress: ipAddress || undefined,
+        },
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          "An error occurred while verifying plug connection.",
       });
     }
   };

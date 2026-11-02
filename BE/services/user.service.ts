@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import UserModel from '../models/user.model';
@@ -26,6 +27,19 @@ export interface LoginResult {
   user: IUser;
 }
 
+export class AuthError extends Error {
+  code: string;
+  data?: any;
+
+  constructor(message: string, code: string, data?: any) {
+    super(message);
+    this.name = 'AuthError';
+    this.code = code;
+    this.data = data;
+    Object.setPrototypeOf(this, AuthError.prototype);
+  }
+}
+
 export class UserService {
   /**
    * Authenticates user with email and password and returns JWT accessToken
@@ -36,32 +50,51 @@ export class UserService {
     const { email, password } = credentials;
 
     if (!email || !password) {
-      throw new Error('Email and password are required');
+      throw new AuthError('Email and password are required', 'MISSING_CREDENTIALS');
     }
 
     const normalizedEmail = email.toLowerCase().trim();
     const user = await UserModel.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
-      throw new Error('Invalid email or password');
-    }
-
-    if (user.status === 'INACTIVE' || user.status === 'PENDING') {
-      throw new Error('Account is not activated. Please check your email to activate your account.');
-    }
-
-    if (user.status === 'SUSPENDED') {
-      throw new Error('Account is suspended. Please contact support.');
+      throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      throw new Error('Invalid email or password');
+      throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
+    }
+
+    if (user.status === 'INACTIVE' || user.status === 'PENDING') {
+      throw new AuthError(
+        'Account is not activated. Please check your email to activate your account.',
+        'ACCOUNT_INACTIVE',
+        { email: user.email, status: user.status }
+      );
+    }
+
+    if (user.status === 'SUSPENDED') {
+      throw new AuthError('Account is suspended. Please contact support.', 'ACCOUNT_SUSPENDED', {
+        email: user.email,
+        status: user.status,
+      });
     }
 
     user.lastLogin = new Date();
     await user.save();
 
+    const accessToken = this.generateAuthToken(user);
+
+    return {
+      accessToken,
+      user,
+    };
+  }
+
+  /**
+   * Helper method to generate standard JWT auth access token
+   */
+  private generateAuthToken(user: IUser): string {
     const secret = process.env.JWT_SECRET || 'spectrum_jwt_super_secret_key_2026_xyz!';
     const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as any;
 
@@ -72,16 +105,11 @@ export class UserService {
       status: user.status,
     };
 
-    const accessToken = jwt.sign(payload, secret, { expiresIn });
-
-    return {
-      accessToken,
-      user,
-    };
+    return jwt.sign(payload, secret, { expiresIn });
   }
 
   /**
-   * Registers a new user account with activation token and sends a localized email
+   * Registers a new user account with activation token and 6-digit code, then sends a localized email
    * @param data Signup credentials and profile information
    * @returns The created user document
    */
@@ -117,8 +145,9 @@ export class UserService {
       throw new Error('Email is already registered');
     }
 
-    // 3. Generate a long random activation token and token expiration of next hour
+    // 3. Generate a secure activation token and 6-digit mobile verification code
     const activationToken = crypto.randomBytes(32).toString('hex');
+    const activationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const activationTokenExpiration = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     // 4. Create new user with status INACTIVE
@@ -132,17 +161,19 @@ export class UserService {
       phoneNumber: phoneNumber?.trim() || null,
       imageUrl: imageUrl || null,
       activationToken,
+      activationCode,
       activationTokenExpiration,
     });
 
     await user.save();
 
-    // 5. Send formatted, localized email with the activation token
+    // 5. Send formatted, localized email with the activation token and code
     try {
       await emailService.sendActivationEmail({
         to: user.email,
         name: user.name,
         token: activationToken,
+        code: activationCode,
         language: user.language,
       });
     } catch (emailError: any) {
@@ -156,9 +187,9 @@ export class UserService {
   /**
    * Activates a user account using the provided activation token
    * @param token The activation token sent via email
-   * @returns The activated user document
+   * @returns The activated user document and JWT accessToken
    */
-  async activateAccount(token: string): Promise<IUser> {
+  async activateAccount(token: string): Promise<{ user: IUser; accessToken: string }> {
     if (!token) {
       throw new Error('Activation token is required');
     }
@@ -166,7 +197,7 @@ export class UserService {
     const user = await UserModel.findOne({
       activationToken: token,
       activationTokenExpiration: { $gt: new Date() },
-    }).select('+activationToken');
+    }).select('+activationToken +activationCode');
 
     if (!user) {
       throw new Error('Invalid or expired activation token');
@@ -174,10 +205,51 @@ export class UserService {
 
     user.status = 'ACTIVE';
     user.activationToken = undefined;
+    user.activationCode = undefined;
     user.activationTokenExpiration = undefined;
 
     await user.save();
-    return user;
+
+    const accessToken = this.generateAuthToken(user);
+    return { user, accessToken };
+  }
+
+  /**
+   * Activates a user account using the 6-digit verification code sent via email
+   * @param email User email
+   * @param code 6-digit verification code
+   * @returns The activated user document and JWT accessToken
+   */
+  async activateAccountWithCode(
+    email: string,
+    code: string,
+  ): Promise<{ user: IUser; accessToken: string }> {
+    if (!email || !code) {
+      throw new Error('Email and verification code are required');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const cleanCode = code.trim();
+
+    const user = await UserModel.findOne({
+      email: normalizedEmail,
+      activationCode: cleanCode,
+      activationTokenExpiration: { $gt: new Date() },
+    }).select('+activationToken +activationCode');
+
+    if (!user) {
+      throw new Error('Invalid or expired verification code');
+    }
+
+    user.status = 'ACTIVE';
+    user.activationToken = undefined;
+    user.activationCode = undefined;
+    user.activationTokenExpiration = undefined;
+
+    await user.save();
+
+    const accessToken = this.generateAuthToken(user);
+    return { user, accessToken };
   }
 
   /**
@@ -196,7 +268,7 @@ export class UserService {
 
   /**
    * Resends invitation/activation email to a user with INACTIVE status.
-   * Checks if user has INACTIVE status, regenerates activationToken with a new expiration,
+   * Checks if user has INACTIVE status, regenerates activationToken & activationCode with a new expiration,
    * saves user document, and sends activation email.
    * @param emailOrId User email or ID
    */
@@ -209,13 +281,13 @@ export class UserService {
     let user: IUser | null = null;
 
     if (trimmed.includes('@')) {
-      user = await UserModel.findOne({ email: trimmed.toLowerCase() }).select('+activationToken');
+      user = await UserModel.findOne({ email: trimmed.toLowerCase() }).select('+activationToken +activationCode');
     } else if (mongoose.Types.ObjectId.isValid(trimmed) && trimmed.length === 24) {
-      user = await UserModel.findById(trimmed).select('+activationToken');
+      user = await UserModel.findById(trimmed).select('+activationToken +activationCode');
     }
 
     if (!user) {
-      user = await UserModel.findOne({ activationToken: trimmed }).select('+activationToken');
+      user = await UserModel.findOne({ activationToken: trimmed }).select('+activationToken +activationCode');
     }
 
     if (!user) {
@@ -226,7 +298,7 @@ export class UserService {
       throw new Error('User is not in INACTIVE status');
     }
 
-    const token = user.resendInvitation();
+    const { token, code } = user.resendInvitation();
 
     await user.save();
 
@@ -235,6 +307,7 @@ export class UserService {
         to: user.email,
         name: user.name,
         token,
+        code,
         language: user.language,
       });
     } catch (emailError: any) {
@@ -319,6 +392,180 @@ export class UserService {
     user.password = newPassword;
     user.lastPasswordChange = new Date();
     await user.save();
+  }
+
+  /**
+   * Step 1 — sendOTP
+   * - Generate a cryptographically secure 6-digit OTP.
+   * - Hash it and store the hash in user.OTP.
+   * - Set user.OTPExpiration to the current time + 10 minutes.
+   * - Reset user.OTPChecked to false.
+   * - Email the plaintext OTP to the user.
+   */
+  async sendOTP(email: string): Promise<{ message: string }> {
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await UserModel.findOne({ email: normalizedEmail }).select('+password +OTP');
+
+    if (!user) {
+      throw new Error('User with this email does not exist');
+    }
+
+    // Generate a cryptographically secure 6-digit OTP (100000 to 999999)
+    const plainOtp = crypto.randomInt(100000, 1000000).toString();
+
+    // Hash it and store the hash in user.OTP
+    const salt = await bcrypt.genSalt(10);
+    const hashedOTP = await bcrypt.hash(plainOtp, salt);
+
+    user.OTP = hashedOTP;
+    user.OTPExpiration = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.OTPChecked = false;
+    await user.save();
+
+    // Email the plaintext OTP to the user
+    await emailService.sendForgotPasswordMail({
+      to: normalizedEmail,
+      code: plainOtp,
+      name: user.name,
+      expirationMinutes: 10,
+    });
+
+    return {
+      message: 'Reset email sent successfully',
+    };
+  }
+
+  /**
+   * Step 2 — checkOTP
+   * - Compare the submitted OTP against the stored hash.
+   * - Check that the OTP has not expired.
+   * - If valid, set OTPChecked = true.
+   * - Return success.
+   */
+  async checkOTP(email: string, otp: string): Promise<{ message: string }> {
+    if (!email) {
+      throw new Error('Email is required');
+    }
+    if (!otp) {
+      throw new Error('OTP is required');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await UserModel.findOne({ email: normalizedEmail }).select('+OTP');
+
+    if (!user) {
+      throw new Error('User with this email does not exist');
+    }
+
+    if (!user.OTP) {
+      throw new Error('No OTP found or OTP already used');
+    }
+
+    // Check that the OTP has not expired
+    if (!user.OTPExpiration || new Date() > new Date(user.OTPExpiration)) {
+      throw new Error('OTP has expired');
+    }
+
+    // Compare the submitted OTP against the stored hash
+    const isMatch = await bcrypt.compare(otp.trim(), user.OTP);
+    if (!isMatch) {
+      throw new Error('Invalid OTP');
+    }
+
+    // If valid, set OTPChecked = true
+    user.OTPChecked = true;
+    await user.save();
+
+    return {
+      message: 'OTP verified successfully',
+    };
+  }
+
+  /**
+   * Step 3 — resetPassword
+   * - Validate the new password and confirmation.
+   * - First check the validity of OTP (Not the expiration).
+   * - Second check that OTP verification succeeded (OTPChecked is true).
+   * - Update the password.
+   * - Clear OTP, set OTPChecked = false, and set OTPExpiration = null.
+   */
+  async resetPassword(payload: {
+    email: string;
+    otp: string;
+    newPassword?: string;
+    password?: string;
+    passwordConfirmation?: string;
+    confirmPassword?: string;
+  }): Promise<{ message: string }> {
+    const { email, otp } = payload;
+    const newPassword = payload.newPassword || payload.password;
+    const passwordConfirmation = payload.passwordConfirmation || payload.confirmPassword;
+
+    if (!email) {
+      throw new Error('Email is required');
+    }
+    if (!otp) {
+      throw new Error('OTP is required');
+    }
+    if (!newPassword) {
+      throw new Error('New password is required');
+    }
+    if (!passwordConfirmation) {
+      throw new Error('Password confirmation is required');
+    }
+    if (newPassword !== passwordConfirmation) {
+      throw new Error('Passwords do not match');
+    }
+    if (newPassword.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await UserModel.findOne({ email: normalizedEmail }).select('+password +OTP');
+
+    if (!user) {
+      throw new Error('User with this email does not exist');
+    }
+
+    if (!user.OTP) {
+      throw new Error('No OTP found or OTP already used');
+    }
+
+    // First: the validity of OTP (Not the expiration)
+    const isMatch = await bcrypt.compare(otp.trim(), user.OTP);
+    if (!isMatch) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Second: require that OTP verification succeeded (OTPChecked is true)
+    if (!user.OTPChecked) {
+      throw new Error('OTP verification required');
+    }
+
+    // Update the password (pre-save hook will hash it and update lastPasswordChange)
+    user.password = newPassword;
+
+    // Clear OTP, set OTPChecked = false, and set OTPExpiration = null
+    user.OTP = null;
+    user.OTPChecked = false;
+    user.OTPExpiration = null;
+
+    await user.save();
+
+    return {
+      message: 'Password reset successfully',
+    };
+  }
+
+  /**
+   * Alias for sendOTP (backward compatibility)
+   */
+  async forgetPassword(email: string): Promise<{ message: string }> {
+    return this.sendOTP(email);
   }
 }
 

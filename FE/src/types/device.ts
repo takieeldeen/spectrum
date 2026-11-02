@@ -3,7 +3,6 @@ export interface IDevice {
   name: string;
   plugId?: {
     _id: string;
-    arabicName: string;
     name: string;
   } | string;
   plugPort?: number;

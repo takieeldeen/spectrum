@@ -6,6 +6,7 @@ import ThemedText from "@/components/themed-text";
 import Lucide from "@react-native-vector-icons/lucide";
 import { useAuth } from "@/context/auth-context";
 import ProfileEditModal from "./profile-edit-modal";
+import i18n from "@/i18n";
 
 const DEFAULT_AVATAR = "https://mockmind-api.uifaces.co/content/human/215.jpg";
 
@@ -66,14 +67,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderRadius: 12,
     },
     upperPart: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
     },
 
     primaryInfoContainer: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       gap: 12,
-      marginRight: "auto",
+      marginRight: i18n.language === "en" ? "auto" : 0,
+      marginLeft: i18n.language === "ar" ? "auto" : 0,
     },
 
     imageContainer: {
@@ -89,6 +91,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       height: "100%",
     },
     infoTextContainer: {
+      alignItems: i18n.language === "en" ? "flex-start" : "flex-end",
       justifyContent: "center",
       flex: 1,
     },

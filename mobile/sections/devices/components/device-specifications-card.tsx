@@ -23,11 +23,7 @@ export function DeviceSpecificationsCard({
 
   const plugObj =
     typeof device?.plugId === "object" ? device.plugId : undefined;
-  const stripName = plugObj
-    ? isArabic
-      ? plugObj.arabicName || plugObj.name
-      : plugObj.name || plugObj.arabicName
-    : undefined;
+  const stripName = plugObj?.name;
 
   const isAssigned = !!device?.plugId && device.plugId !== "";
 

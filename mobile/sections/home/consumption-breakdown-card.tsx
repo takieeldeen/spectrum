@@ -262,21 +262,19 @@ export interface ConsumptionBreakdownCardProps {
 
 export const ConsumptionBreakdownCard: React.FC<
   ConsumptionBreakdownCardProps
-> = ({
-  totalPower = 6.62,
-  unit,
-  items = DEFAULT_BREAKDOWN,
-  title,
-  style,
-}) => {
+> = ({ totalPower = 6.62, unit, items = DEFAULT_BREAKDOWN, title, style }) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const isDark = theme.isDark;
   const isArabic = (i18n.language || "ar").startsWith("ar");
   const isRtl = I18nManager.isRTL || isArabic;
   const rowDirection = isArabic
-    ? I18nManager.isRTL ? "row" : "row-reverse"
-    : I18nManager.isRTL ? "row-reverse" : "row";
+    ? I18nManager.isRTL
+      ? "row"
+      : "row-reverse"
+    : I18nManager.isRTL
+      ? "row-reverse"
+      : "row";
 
   const cardTitle = title ?? t("DASHBOARD.CONSUMPTION_BREAKDOWN");
   const cardUnit = unit ?? t("DASHBOARD.WATT");
@@ -312,8 +310,7 @@ export const ConsumptionBreakdownCard: React.FC<
           return {
             strip: {
               _id: stripId,
-              nameAr: "مخرج " + portNumber,
-              nameEn: "Outlet " + portNumber,
+              name: t("DASHBOARD.OUTLET_NUMBER", { number: portNumber }),
             },
             portNumber,
             power,
@@ -345,7 +342,7 @@ export const ConsumptionBreakdownCard: React.FC<
       );
       return sortedItems.map((item, index) => ({
         id: item.id,
-        strip: { _id: item.id, nameAr: item.name, nameEn: item.name },
+        strip: { _id: item.id, name: item.name },
         portNumber: index + 1,
         power: (item.percentage / 100) * totalPower,
         device: { _id: item.id, name: item.name },
@@ -368,7 +365,7 @@ export const ConsumptionBreakdownCard: React.FC<
 
     type BreakdownOutletItem = {
       id: string;
-      strip: { _id: string; nameAr: string; nameEn: string };
+      strip: { _id: string; name: string; nameEn?: string };
       portNumber: number;
       power: number;
       device: { _id: string; name?: string };
@@ -419,8 +416,7 @@ export const ConsumptionBreakdownCard: React.FC<
         id: "others",
         strip: {
           _id: "others",
-          nameAr: othersLabel,
-          nameEn: othersLabel,
+          name: othersLabel,
         },
         portNumber: 0,
         power: othersPower,
@@ -481,7 +477,7 @@ export const ConsumptionBreakdownCard: React.FC<
       {/* 1. Header: Title */}
       <View
         style={{
-          flexDirection: "row",
+          flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
           alignItems: "center",
         }}
       >

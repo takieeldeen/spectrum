@@ -4,7 +4,6 @@ export interface IDevice {
   plugId?:
     | {
         _id: string;
-        arabicName: string;
         name: string;
       }
     | string;

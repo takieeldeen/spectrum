@@ -18,7 +18,41 @@ export interface CurrentConsumptionCardProps {
   period?: PeriodType;
   onPeriodChange?: (period: PeriodType) => void;
   style?: StyleProp<ViewStyle>;
+  isEmpty?: boolean;
 }
+
+/* ==========================================================================
+   EMPTY STATE COMPONENT (For Top Current Consumption Card)
+   ========================================================================== */
+
+export interface CurrentConsumptionEmptyViewProps {
+  styles: ReturnType<typeof createStyles>;
+  theme: ReturnType<typeof useTheme>;
+}
+
+export const CurrentConsumptionEmptyView: React.FC<
+  CurrentConsumptionEmptyViewProps
+> = ({ styles }) => {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconCircle}>
+        <Lucide name="zap-off" size={28} color="#FFFFFF" />
+      </View>
+      <ThemedText weight="700" style={styles.emptyTitle}>
+        {t("DASHBOARD.NO_POWER_DATA")}
+      </ThemedText>
+      <ThemedText style={styles.emptySubtitle}>
+        {t("DASHBOARD.NO_POWER_DATA_HINT")}
+      </ThemedText>
+    </View>
+  );
+};
+
+/* ==========================================================================
+   MAIN CURRENT CONSUMPTION CARD
+   ========================================================================== */
 
 export const CurrentConsumptionCard: React.FC<CurrentConsumptionCardProps> = ({
   totalPower: propTotalPower,
@@ -26,6 +60,7 @@ export const CurrentConsumptionCard: React.FC<CurrentConsumptionCardProps> = ({
   period: propPeriod,
   onPeriodChange,
   style,
+  isEmpty: propIsEmpty,
 }) => {
   const { t } = useTranslation();
   const { data: dayAnalytics } = useGetDayAnalytics();
@@ -53,6 +88,14 @@ export const CurrentConsumptionCard: React.FC<CurrentConsumptionCardProps> = ({
 
   const activeCount = propActiveDevicesCount ?? activeOutlets.length;
 
+  // Empty check: no outlets configured / empty prop override
+  const hasNoOutlets = allOutlets.length === 0;
+  const isCardEmpty =
+    propIsEmpty ??
+    (hasNoOutlets &&
+      (propTotalPower === undefined || propTotalPower === 0) &&
+      (propActiveDevicesCount === undefined || propActiveDevicesCount === 0));
+
   const handlePeriodChange = (newPeriod: PeriodType) => {
     if (propPeriod === undefined) {
       setInternalPeriod(newPeriod);
@@ -66,11 +109,15 @@ export const CurrentConsumptionCard: React.FC<CurrentConsumptionCardProps> = ({
     <View style={[styles.card, style]}>
       {/* 1. Top Header Row: Live badge & Title with Icon */}
       <View style={styles.headerRow}>
-        {/* Live Badge */}
-        <View style={styles.liveBadge}>
-          <ThemedText style={styles.liveText}>{t("DASHBOARD.LIVE")}</ThemedText>
-          <View style={styles.liveDot} />
-        </View>
+        {/* Live Badge (Visible when not empty) */}
+        <Fade in={!isCardEmpty} duration={200} unmountOnExit>
+          <View style={styles.liveBadge}>
+            <ThemedText style={styles.liveText}>
+              {t("DASHBOARD.LIVE")}
+            </ThemedText>
+            <View style={styles.liveDot} />
+          </View>
+        </Fade>
 
         {/* Title + Zap Icon */}
         <View style={styles.titleContainer}>
@@ -83,49 +130,57 @@ export const CurrentConsumptionCard: React.FC<CurrentConsumptionCardProps> = ({
         </View>
       </View>
 
-      {/* 2. Metrics Row: Connected devices count & Big power number */}
-      <View style={styles.metricsRow}>
-        {/* Connected devices */}
-        <View style={styles.connectedRow}>
-          <ThemedText style={styles.connectedText}>
-            {t("DASHBOARD.CONNECTED_DEVICES_COUNT", { count: activeCount })}
-          </ThemedText>
-          <Lucide name="plug" size={20} color="white" />
+      {/* 2. Empty State View */}
+      <Fade in={isCardEmpty} duration={250} unmountOnExit>
+        <CurrentConsumptionEmptyView styles={styles} theme={theme} />
+      </Fade>
+
+      {/* 3. Loaded Metrics, Graph & Segmented Control */}
+      <Fade in={!isCardEmpty} duration={250} unmountOnExit style={{ gap: 16 }}>
+        {/* Metrics Row: Connected devices count & Big power number */}
+        <View style={styles.metricsRow}>
+          {/* Connected devices */}
+          <View style={styles.connectedRow}>
+            <ThemedText style={styles.connectedText}>
+              {t("DASHBOARD.CONNECTED_DEVICES_COUNT", { count: activeCount })}
+            </ThemedText>
+            <Lucide name="plug" size={20} color="white" />
+          </View>
+
+          {/* Value + Unit */}
+          <View style={styles.powerRow}>
+            <ThemedText style={styles.wattUnitText}>
+              {t("DASHBOARD.WATT")}
+            </ThemedText>
+            <ThemedText style={styles.powerValueText}>
+              {totalPower.toFixed(2)}
+            </ThemedText>
+          </View>
         </View>
 
-        {/* Value + Unit */}
-        <View style={styles.powerRow}>
-          <ThemedText style={styles.wattUnitText}>
-            {t("DASHBOARD.WATT")}
-          </ThemedText>
-          <ThemedText style={styles.powerValueText}>
-            {totalPower.toFixed(2)}
-          </ThemedText>
+        {/* Conditional Graph Views using Fade (no ternaries) */}
+        <View style={styles.graphContainer}>
+          <Fade
+            in={selectedPeriod === "day"}
+            unmountOnExit
+            immediateExit
+            duration={250}
+          >
+            <CurrentDailyConsumptionCard data={dayAnalytics} />
+          </Fade>
+          <Fade
+            in={selectedPeriod === "month"}
+            unmountOnExit
+            immediateExit
+            duration={250}
+          >
+            <CurrentMonthlyConsumption data={monthAnalytics} />
+          </Fade>
         </View>
-      </View>
 
-      {/* 3. Conditional Graph Views using Fade (no ternaries) */}
-      <View style={styles.graphContainer}>
-        <Fade
-          in={selectedPeriod === "day"}
-          unmountOnExit
-          immediateExit
-          duration={250}
-        >
-          <CurrentDailyConsumptionCard data={dayAnalytics} />
-        </Fade>
-        <Fade
-          in={selectedPeriod === "month"}
-          unmountOnExit
-          immediateExit
-          duration={250}
-        >
-          <CurrentMonthlyConsumption data={monthAnalytics} />
-        </Fade>
-      </View>
-
-      {/* 4. Bottom Segmented Control Filter */}
-      <PeriodSelector value={selectedPeriod} onChange={handlePeriodChange} />
+        {/* Bottom Segmented Control Filter */}
+        <PeriodSelector value={selectedPeriod} onChange={handlePeriodChange} />
+      </Fade>
     </View>
   );
 };
@@ -140,9 +195,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 16,
     },
     headerRow: {
-      flexDirection: "row-reverse",
+      flexDirection: i18n.language === "ar" ? "row" : "row-reverse",
       justifyContent: "space-between",
       alignItems: "center",
+      minHeight: 42,
     },
     liveBadge: {
       flexDirection: "row-reverse",
@@ -165,7 +221,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: "#34D399",
     },
     titleContainer: {
-      flexDirection: "row-reverse",
+      flexDirection: i18n.language === "ar" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 10,
     },
@@ -183,14 +239,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderRadius: 13,
     },
     metricsRow: {
-      flexDirection: "row",
+      flexDirection: "column",
       justifyContent: "space-between",
       alignItems: "baseline",
     },
     connectedRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 6,
+      alignSelf: "flex-end",
     },
     connectedText: {
       color: "white",
@@ -217,6 +274,34 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       width: "100%",
       minHeight: 150,
       marginTop: 4,
+    },
+    emptyContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 28,
+      gap: 10,
+    },
+    emptyIconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: "rgba(255, 255, 255, 0.16)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      lineHeight: 24,
+      color: "#FFFFFF",
+      textAlign: "center",
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: "rgba(255, 255, 255, 0.8)",
+      textAlign: "center",
+      maxWidth: 290,
     },
   });
 

@@ -66,9 +66,8 @@ export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
 
   const PlugSchema = Yup.object().shape({
     name: Yup.string().required(
-      t('COMMON_VALIDATIONS.REQUIRED_FIELD', { field: t('ENGLISH_NAME') })
+      t('COMMON_VALIDATIONS.REQUIRED_FIELD', { field: t('PLUG_NAME', 'Plug Name') })
     ),
-    arabicName: Yup.string().nullable(),
     serialNumber: Yup.string().required(
       t('COMMON_VALIDATIONS.REQUIRED_FIELD', { field: t('SERIAL_NUMBER') })
     ),
@@ -84,7 +83,6 @@ export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
 
   type FormValues = {
     name: string;
-    arabicName: string;
     serialNumber: string;
     ipAddress: string;
     room: string;
@@ -97,7 +95,6 @@ export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
   const defaultValues: FormValues = React.useMemo(
     () => ({
       name: currentPlug?.name || '',
-      arabicName: currentPlug?.arabicName || '',
       serialNumber: currentPlug?.serialNumber || '',
       ipAddress: currentPlug?.ipAddress || '',
       room: currentPlug?.roomId || '',
@@ -188,13 +185,8 @@ export default function PlugNewEditForm({ currentPlug, open, onClose }: Props) {
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2.5 }}>
               <Stack spacing={3}>
                 <Stack spacing={1}>
-                  <Typography>{t('ENGLISH_NAME', 'English Name')}</Typography>
-                  <RHFTextField name="name" placeholder={t('ENGLISH_NAME', 'English Name')} />
-                </Stack>
-
-                <Stack spacing={1}>
-                  <Typography>{t('ARABIC_NAME', 'Arabic Name')}</Typography>
-                  <RHFTextField name="arabicName" placeholder={t('ARABIC_NAME', 'Arabic Name')} />
+                  <Typography>{t('PLUG_NAME', 'Plug Name')}</Typography>
+                  <RHFTextField name="name" placeholder={t('PLUG_NAME', 'Plug Name')} />
                 </Stack>
 
                 <Stack spacing={1}>

@@ -7,7 +7,8 @@ export class DeviceController {
    */
   createDevice = async (req: Request, res: Response) => {
     try {
-      const data = req.body;
+      const userId = req.user?._id?.toString() || req.userId;
+      const data = { ...req.body, ...(userId ? { user: userId } : {}) };
       const newDevice = await deviceService.createDevice(data);
 
       return res.status(201).json({
@@ -28,7 +29,8 @@ export class DeviceController {
    */
   getAllDevices = async (req: Request, res: Response) => {
     try {
-      const devices = await deviceService.getAllDevices();
+      const userId = req.user?._id?.toString() || req.userId;
+      const devices = await deviceService.getAllDevices(userId);
 
       return res.status(200).json({
         success: true,
@@ -49,8 +51,10 @@ export class DeviceController {
   getUnassignedDevices = async (req: Request, res: Response) => {
     try {
       const { plugId } = req.query;
+      const userId = req.user?._id?.toString() || req.userId;
       const devices = await deviceService.getUnassignedDevices(
         plugId as string,
+        userId,
       );
 
       return res.status(200).json({
@@ -228,4 +232,3 @@ export class DeviceController {
 }
 
 export default new DeviceController();
-

@@ -18,6 +18,7 @@ export interface IUser extends Document {
   theme: UserTheme;
   lastPasswordChange?: Date | null;
   activationToken?: string | null;
+  activationCode?: string | null;
   activationTokenExpiration?: Date | null;
   lastLogin?: Date | null;
   kwhCost?: number;
@@ -27,6 +28,9 @@ export interface IUser extends Document {
   powerUnit?: 'W' | 'kW';
   createdAt?: Date;
   updatedAt?: Date;
+  OTP?: string | null;
+  OTPExpiration?: Date | null;
+  OTPChecked?: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
-  resendInvitation(): string;
+  resendInvitation(): { token: string; code: string };
 }

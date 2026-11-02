@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   I18nManager,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -24,6 +25,8 @@ import { useLoginMutation } from "@/api/auth";
 import { useAuth } from "@/context/auth-context";
 import Logo from "@/components/logo";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { ConfirmationMessage } from "@/components/confirmation-message";
+import { LanguageCombobox } from "@/components/language-combobox";
 
 /* ==========================================================================
    1. FORM SCHEMA & TYPES
@@ -50,6 +53,9 @@ const LoginView = () => {
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
 
   const [showPassword, setShowPassword] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
+  const [showSuspendedModal, setShowSuspendedModal] = useState(false);
   const snackbar = useSnackbar();
 
   // Localized Yup Schema
@@ -91,7 +97,7 @@ const LoginView = () => {
     defaultValues,
   });
 
-  // Submission handler with localized snackbar messages
+  // Submission handler with localized snackbar messages and account status dialogs
   const onSubmit = async (values: FormValues) => {
     loginMutation.mutate(
       { email: values.email.trim(), password: values.password },
@@ -102,14 +108,40 @@ const LoginView = () => {
           router.replace("/(tabs)");
         },
         onError: (err: any) => {
+          const resData = err?.response?.data;
+          const errorCode = resData?.code;
           const rawMsg =
-            err?.response?.data?.message || err?.message || "wrong_credentials";
+            resData?.message || err?.message || "wrong_credentials";
+
+          // 1. Account Inactive / Pending Activation
+          if (
+            errorCode === "ACCOUNT_INACTIVE" ||
+            String(rawMsg).includes("Account is not activated")
+          ) {
+            const targetEmail = resData?.data?.email || values.email.trim();
+            setPendingEmail(targetEmail);
+            setShowInactiveModal(true);
+            return;
+          }
+
+          // 2. Account Suspended
+          if (
+            errorCode === "ACCOUNT_SUSPENDED" ||
+            String(rawMsg).includes("Account is suspended")
+          ) {
+            setShowSuspendedModal(true);
+            return;
+          }
+
+          // 3. Fallback to standard localized error snackbar
           const normalizedKey = String(rawMsg)
             .toLowerCase()
             .replace(/[\s-]/g, "_");
           const localizedMsg = i18n.exists(`BE_ERROR.${normalizedKey}`)
             ? t(`BE_ERROR.${normalizedKey}`)
-            : t("BE_ERROR.wrong_credentials");
+            : i18n.exists(`BE_ERROR.${rawMsg}`)
+              ? t(`BE_ERROR.${rawMsg}`)
+              : t("BE_ERROR.wrong_credentials");
 
           snackbar.error(localizedMsg);
         },
@@ -122,7 +154,7 @@ const LoginView = () => {
   };
 
   const handleSignUp = () => {
-    // Navigate or prompt registration
+    router.push("/register");
   };
 
   const isSubmitting = loginMutation.isPending;
@@ -134,6 +166,10 @@ const LoginView = () => {
       <View style={styles.bubbleTopLeft} pointerEvents="none" />
       <View style={styles.bubbleDot} pointerEvents="none" />
 
+      {/* Top Bar with Language Combobox */}
+      <View style={styles.topBar}>
+        <LanguageCombobox />
+      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -320,6 +356,39 @@ const LoginView = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Account Inactive Modal */}
+      <ConfirmationMessage
+        visible={showInactiveModal}
+        variant="Info"
+        title={t("LOGIN_PAGE.ACCOUNT_NOT_ACTIVATED_TITLE")}
+        subtitle={t("LOGIN_PAGE.ACCOUNT_NOT_ACTIVATED_DESC")}
+        confirmText={t("LOGIN_PAGE.VERIFY_NOW")}
+        cancelText={t("LOGIN_PAGE.CANCEL")}
+        onConfirm={() => {
+          setShowInactiveModal(false);
+          router.push({
+            pathname: "/verify-email",
+            params: { email: pendingEmail },
+          });
+        }}
+        onClose={() => setShowInactiveModal(false)}
+      />
+
+      {/* Account Suspended Modal */}
+      <ConfirmationMessage
+        visible={showSuspendedModal}
+        variant="Error"
+        title={t("LOGIN_PAGE.ACCOUNT_SUSPENDED_TITLE")}
+        subtitle={t("LOGIN_PAGE.ACCOUNT_SUSPENDED_DESC")}
+        confirmText={t("LOGIN_PAGE.CONTACT_SUPPORT")}
+        cancelText={t("LOGIN_PAGE.CANCEL")}
+        onConfirm={() => {
+          setShowSuspendedModal(false);
+          Linking.openURL("mailto:support@spectrum.com").catch(() => {});
+        }}
+        onClose={() => setShowSuspendedModal(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -340,9 +409,19 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     scrollContent: {
       flexGrow: 1,
       paddingHorizontal: 18,
-      paddingTop: 16,
+      paddingTop: 8,
       paddingBottom: 40,
       justifyContent: "center",
+    },
+
+    // ── Top Bar (Language Selector) ──
+    topBar: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      paddingHorizontal: 18,
+      paddingTop: 6,
+      paddingBottom: 2,
+      zIndex: 10,
     },
 
     // ── Decorative Background Bubbles ──
@@ -431,7 +510,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       color: theme.primaryText,
       marginBottom: 8,
-      textAlign: "right",
+
+      // textAlign: "right",
     },
     inputWrapper: {
       flexDirection: "row",

@@ -14,6 +14,7 @@ import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
 import { useAuth } from "@/context/auth-context";
 import LanguageBottomSheet, { LanguageCode } from "./language-bottom-sheet";
+import i18n from "@/i18n";
 
 export interface GeneralSettingsProps {
   currentLanguage?: string;
@@ -157,6 +158,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 12,
       paddingHorizontal: 4,
       color: theme.text,
+      textAlign: i18n.language === "en" ? "left" : "right",
     },
     card: {
       backgroundColor: theme.cardBackground,
@@ -177,13 +179,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       }),
     },
     row: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: 14,
     },
     rowStart: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 12,
       flex: 1,
@@ -197,7 +199,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     textContainer: {
-      flex: 1,
+      flex: i18n.language === "ar" ? 0 : 1,
       justifyContent: "center",
     },
     rowTitle: {
@@ -205,7 +207,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.text,
     },
     rowEnd: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 8,
     },

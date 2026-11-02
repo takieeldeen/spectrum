@@ -47,9 +47,9 @@ export default function TabTwoScreen() {
 
   // ── Provisioning Form State ──
   const [stripSerialNumber, setStripSerialNumber] = useState("2CFDB3C1DE06");
-  const [wifiNetworkName, setWifiNetworkName] = useState("ahmed");
-  const [wifiPassword, setWifiPassword] = useState("ma2345678*#");
-  const [serverIp, setServerIp] = useState("192.168.1.13");
+  const [wifiNetworkName, setWifiNetworkName] = useState("WE_506CF0");
+  const [wifiPassword, setWifiPassword] = useState("Takie_Eldeen@140656");
+  const [serverIp, setServerIp] = useState("192.168.1.9");
   const [connecting, setConnecting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -429,7 +429,7 @@ export default function TabTwoScreen() {
 
     try {
       setConnecting(true);
-
+      // Requesting Android Permission for android
       if (Platform.OS === "android") {
         setStatusMessage("Requesting location permissions...");
         const granted = await PermissionsAndroid.request(

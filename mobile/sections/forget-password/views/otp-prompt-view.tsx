@@ -10,6 +10,8 @@ import {
   I18nManager,
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
+  ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -20,6 +22,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import Logo from "@/components/logo";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useCheckOTPMutation, useSendOTPMutation } from "@/api/auth";
 import { Stepper } from "../components/stepper";
 
 export function OtpPromptView() {
@@ -32,12 +35,30 @@ export function OtpPromptView() {
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
 
-  const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [otpDigits, setOtpDigits] = useState<string[]>([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const [timerSeconds, setTimerSeconds] = useState<number>(45);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const { mutate: verifyOtp, isPending: isVerifying } = useCheckOTPMutation();
+  const { mutate: resendOtp, isPending: isResending } = useSendOTPMutation();
+
   const inputRefs = useRef<Array<TextInput | null>>([]);
+
+  // Auto-focus first input and open keyboard on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Timer countdown
   useEffect(() => {
@@ -49,9 +70,30 @@ export function OtpPromptView() {
   }, [timerSeconds]);
 
   const handleResendCode = () => {
-    if (timerSeconds > 0) return;
-    setTimerSeconds(45);
-    snackbar.success(t("FORGOT_PASSWORD.RESET_SUCCESS") ? "Code resent" : "تم إعادة إرسال الرمز بنجاح");
+    if (timerSeconds > 0 || isResending) return;
+    const cleanEmail = params.email?.trim() || "";
+    if (!cleanEmail) return;
+
+    resendOtp(
+      { email: cleanEmail },
+      {
+        onSuccess: (res) => {
+          setTimerSeconds(60);
+          snackbar.success(
+            t("FORGOT_PASSWORD.EMAIL_SENT_SUCCESS") || res.message,
+          );
+        },
+        onError: (error: any) => {
+          const rawMessage =
+            error?.response?.data?.message || error?.message || "generic";
+          const localized =
+            t(`BE_ERROR.${rawMessage}` as any) !== `BE_ERROR.${rawMessage}`
+              ? t(`BE_ERROR.${rawMessage}` as any)
+              : rawMessage;
+          snackbar.error(localized || t("BE_ERROR.generic"));
+        },
+      },
+    );
   };
 
   const handleDigitChange = (value: string, index: number) => {
@@ -100,13 +142,43 @@ export function OtpPromptView() {
       return;
     }
 
-    router.push({
-      pathname: "/forget-password/new-password",
-      params: {
-        email: params.email || "",
-        otp: fullOtp,
+    const cleanEmail = params.email?.trim() || "";
+    if (!cleanEmail) {
+      snackbar.error(
+        t("COMMON_VALIDATIONS.REQUIRED_FIELD", {
+          field: t("FORGOT_PASSWORD.EMAIL_LABEL"),
+        }),
+      );
+      return;
+    }
+
+    verifyOtp(
+      { email: cleanEmail, otp: fullOtp },
+      {
+        onSuccess: (res) => {
+          snackbar.success(
+            t("BE_ERROR.OTP verified successfully") || res.message,
+          );
+          router.push({
+            pathname: "/forget-password/new-password",
+            params: {
+              email: cleanEmail,
+              otp: fullOtp,
+            },
+          });
+        },
+        onError: (error: any) => {
+          const rawMessage =
+            error?.response?.data?.message || error?.message || "Invalid OTP";
+          const localized =
+            t(`BE_ERROR.${rawMessage}` as any) !== `BE_ERROR.${rawMessage}`
+              ? t(`BE_ERROR.${rawMessage}` as any)
+              : rawMessage;
+          setErrorMessage(localized);
+          snackbar.error(localized);
+        },
       },
-    });
+    );
   };
 
   const formattedTimer = `00:${timerSeconds < 10 ? `0${timerSeconds}` : timerSeconds}`;
@@ -164,8 +236,11 @@ export function OtpPromptView() {
                 const isFocused = focusedIndex === index;
                 const hasValue = !!digit;
                 return (
-                  <View
+                  <Pressable
                     key={index}
+                    onPress={() => {
+                      inputRefs.current[index]?.focus();
+                    }}
                     style={[
                       styles.otpBox,
                       isFocused && styles.otpBoxFocused,
@@ -182,12 +257,16 @@ export function OtpPromptView() {
                       onChangeText={(val) => handleDigitChange(val, index)}
                       onKeyPress={(e) => handleKeyPress(e, index)}
                       onFocus={() => setFocusedIndex(index)}
+                      onBlur={() => {
+                        setFocusedIndex((prev) => (prev === index ? -1 : prev));
+                      }}
                       keyboardType="number-pad"
                       maxLength={1}
                       selectTextOnFocus
                       textAlign="center"
+                      autoFocus={index === 0}
                     />
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -223,17 +302,24 @@ export function OtpPromptView() {
             {/* Submit Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.submitButton}
+              style={[styles.submitButton, isVerifying && { opacity: 0.8 }]}
               onPress={onSubmit}
+              disabled={isVerifying}
             >
-              <ThemedText weight="700" style={styles.submitButtonText}>
-                {t("FORGOT_PASSWORD.CONTINUE")}
-              </ThemedText>
-              <Lucide
-                name={isRtl ? "chevron-left" : "chevron-right"}
-                size={20}
-                color="#FFFFFF"
-              />
+              {isVerifying ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <ThemedText weight="700" style={styles.submitButtonText}>
+                    {t("FORGOT_PASSWORD.CONTINUE")}
+                  </ThemedText>
+                  <Lucide
+                    name={isRtl ? "chevron-left" : "chevron-right"}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -347,7 +433,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.text,
       marginBottom: 8,
       textAlign: "center",
-      lineHeight: 30,
+      lineHeight: 32,
+      paddingVertical: 2,
     },
     cardSubtitle: {
       fontSize: 14,
@@ -364,8 +451,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 24,
     },
 
-    // ── OTP Boxes ──
+    // ── OTP Boxes (Always Left-To-Right) ──
     otpBoxesRow: {
+      direction: "ltr",
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
@@ -400,6 +488,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "700",
       color: theme.text,
       padding: 0,
+      textAlign: "center",
+      writingDirection: "ltr",
     },
     errorText: {
       fontSize: 12,

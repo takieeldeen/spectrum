@@ -63,12 +63,17 @@ export class PlugService {
     plugId: string,
     devices: Record<number, string | null | undefined>,
   ): Promise<void> {
+    const plug = await PlugModel.findById(plugId);
     for (const [portStr, deviceId] of Object.entries(devices)) {
       if (deviceId) {
-        await DeviceModel.findByIdAndUpdate(deviceId, {
+        const updateData: Record<string, any> = {
           plugId: plugId,
           plugPort: parseInt(portStr, 10),
-        });
+        };
+        if (plug?.user) {
+          updateData.user = plug.user;
+        }
+        await DeviceModel.findByIdAndUpdate(deviceId, updateData);
       }
     }
   }
@@ -176,7 +181,6 @@ export class PlugService {
       _id: new mongoose.Types.ObjectId(plugId),
       user: new mongoose.Types.ObjectId(userId),
     });
-    console.log(exists ? "User Own the plug" : "User doesn't own the plug");
     return !!exists;
   }
 }

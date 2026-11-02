@@ -28,8 +28,8 @@ import {
 
 export interface DeviceStrip {
   _id: string;
-  nameAr: string;
-  nameEn: string;
+  name: string;
+  nameEn?: string;
   outletsCount?: number;
   totalOutlets?: number;
 }
@@ -104,11 +104,7 @@ export function DeviceCard({
   const deviceName = device?.name;
   const plugObj =
     typeof device?.plugId === "object" ? device.plugId : undefined;
-  const stripName = plugObj
-    ? isArabic
-      ? plugObj.arabicName || plugObj.name
-      : plugObj.name || plugObj.arabicName
-    : undefined;
+  const stripName = plugObj?.name;
 
   const outletsText = isAssigned
     ? t("DEVICE_CARD.OUTLET_NUMBER", { num: device?.plugPort })

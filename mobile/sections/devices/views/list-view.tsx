@@ -51,7 +51,12 @@ export function ListView() {
   return (
     <View style={styles.container}>
       {/* 1. Loading State with Fade */}
-      <Fade in={isLoading} duration={250} style={styles.stateWrapper}>
+      <Fade
+        in={isLoading}
+        duration={250}
+        exitDuration={0}
+        style={styles.stateWrapper}
+      >
         <DeviceListLoadingView count={3} />
       </Fade>
 
@@ -59,6 +64,7 @@ export function ListView() {
       <Fade
         in={!isLoading && (!data || data.length === 0)}
         duration={250}
+        exitDuration={0}
         style={styles.stateWrapper}
       >
         <ScrollView

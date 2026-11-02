@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import userService from '../services/user.service';
-import s3Service from '../services/s3.service';
+import { Request, Response } from "express";
+import userService from "../services/user.service";
+import s3Service from "../services/s3.service";
 
 export class AuthController {
   /**
@@ -32,13 +32,14 @@ export class AuthController {
 
       return res.status(201).json({
         success: true,
-        message: 'User registered successfully. Please check your email to activate your account.',
+        message:
+          "User registered successfully. Please check your email to activate your account.",
         data: user,
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'An error occurred during sign up.',
+        message: error.message || "An error occurred during sign up.",
       });
     }
   };
@@ -48,26 +49,57 @@ export class AuthController {
    */
   activateAccount = async (req: Request, res: Response) => {
     try {
-      const token = (req.body?.token || req.query?.token || req.params?.token) as string;
+      const token = (req.body?.token ||
+        req.query?.token ||
+        req.params?.token) as string;
 
       if (!token) {
         return res.status(400).json({
           success: false,
-          message: 'Activation token is required',
+          message: "Activation token is required",
         });
       }
 
-      const user = await userService.activateAccount(token);
+      const result = await userService.activateAccount(token);
 
       return res.status(200).json({
         success: true,
-        message: 'Account activated successfully.',
-        data: user,
+        message: "Account activated successfully.",
+        data: result,
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to activate account.',
+        message: error.message || "Failed to activate account.",
+      });
+    }
+  };
+
+  /**
+   * Handles user account activation using 6-digit verification code
+   */
+  activateAccountWithCode = async (req: Request, res: Response) => {
+    try {
+      const { email, code } = req.body;
+
+      if (!email || !code) {
+        return res.status(400).json({
+          success: false,
+          message: "Email and verification code are required",
+        });
+      }
+
+      const result = await userService.activateAccountWithCode(email, code);
+
+      return res.status(200).json({
+        success: true,
+        message: "Account activated successfully.",
+        data: result,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to activate account.",
       });
     }
   };
@@ -77,12 +109,14 @@ export class AuthController {
    */
   resendInvitation = async (req: Request, res: Response) => {
     try {
-      const emailOrId = (req.body?.email || req.body?.identifier || req.body?.id) as string;
+      const emailOrId = (req.body?.email ||
+        req.body?.identifier ||
+        req.body?.id) as string;
 
       if (!emailOrId) {
         return res.status(400).json({
           success: false,
-          message: 'Email is required',
+          message: "Email is required",
         });
       }
 
@@ -90,13 +124,14 @@ export class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Activation invitation resent successfully. Please check your email.',
+        message:
+          "Activation invitation resent successfully. Please check your email.",
         data: user,
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to resend invitation.',
+        message: error.message || "Failed to resend invitation.",
       });
     }
   };
@@ -111,7 +146,7 @@ export class AuthController {
       if (!email || !password) {
         return res.status(400).json({
           success: false,
-          message: 'Email and password are required',
+          message: "Email and password are required",
         });
       }
 
@@ -119,13 +154,15 @@ export class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Logged in successfully',
+        message: "Logged in successfully",
         data: result,
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Login failed',
+        code: error.code || "LOGIN_FAILED",
+        message: error.message || "Login failed",
+        data: error.data || null,
       });
     }
   };
@@ -147,7 +184,9 @@ export class AuthController {
     try {
       const userId = req.user?._id?.toString() || req.userId;
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'Unauthorized' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
       }
 
       const {
@@ -171,25 +210,28 @@ export class AuthController {
         theme,
         imageUrl,
         kwhCost: kwhCost !== undefined ? Number(kwhCost) : undefined,
-        monthlyBudget: monthlyBudget !== undefined ? Number(monthlyBudget) : undefined,
+        monthlyBudget:
+          monthlyBudget !== undefined ? Number(monthlyBudget) : undefined,
         overBudgetAlertEnabled:
           overBudgetAlertEnabled !== undefined
             ? Boolean(overBudgetAlertEnabled)
             : undefined,
         budgetAlertPercent:
-          budgetAlertPercent !== undefined ? Number(budgetAlertPercent) : undefined,
+          budgetAlertPercent !== undefined
+            ? Number(budgetAlertPercent)
+            : undefined,
         powerUnit,
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Profile updated successfully',
+        message: "Profile updated successfully",
         data: updatedUser,
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to update profile',
+        message: error.message || "Failed to update profile",
       });
     }
   };
@@ -201,47 +243,58 @@ export class AuthController {
     try {
       const userId = req.user?._id?.toString() || req.userId;
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'Unauthorized' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
       }
 
       let buffer: Buffer | null = null;
-      let mimeType = 'image/jpeg';
-      let ext = 'jpg';
+      let mimeType = "image/jpeg";
+      let ext = "jpg";
 
       if (req.file) {
         buffer = req.file.buffer;
         mimeType = req.file.mimetype;
-        const rawExt = req.file.originalname?.split('.').pop()?.toLowerCase();
-        if (rawExt && ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt)) {
-          ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
+        const rawExt = req.file.originalname?.split(".").pop()?.toLowerCase();
+        if (rawExt && ["jpg", "jpeg", "png", "webp"].includes(rawExt)) {
+          ext = rawExt === "jpeg" ? "jpg" : rawExt;
         } else if (mimeType) {
-          const mimeExt = mimeType.split('/')[1]?.toLowerCase();
-          ext = mimeExt === 'jpeg' ? 'jpg' : (mimeExt || 'jpg');
+          const mimeExt = mimeType.split("/")[1]?.toLowerCase();
+          ext = mimeExt === "jpeg" ? "jpg" : mimeExt || "jpg";
         }
       } else if (req.body?.image) {
         const imageString = req.body.image as string;
-        if (imageString.startsWith('data:')) {
-          const matches = imageString.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (imageString.startsWith("data:")) {
+          const matches = imageString.match(
+            /^data:([A-Za-z-+\/]+);base64,(.+)$/,
+          );
           if (matches && matches.length === 3) {
             mimeType = matches[1];
-            buffer = Buffer.from(matches[2], 'base64');
-            const mimeExt = mimeType.split('/')[1]?.toLowerCase();
-            ext = mimeExt === 'jpeg' ? 'jpg' : (mimeExt || 'jpg');
+            buffer = Buffer.from(matches[2], "base64");
+            const mimeExt = mimeType.split("/")[1]?.toLowerCase();
+            ext = mimeExt === "jpeg" ? "jpg" : mimeExt || "jpg";
           } else {
-            return res.status(400).json({ success: false, message: 'Invalid base64 image data' });
+            return res
+              .status(400)
+              .json({ success: false, message: "Invalid base64 image data" });
           }
         } else {
-          buffer = Buffer.from(imageString, 'base64');
+          buffer = Buffer.from(imageString, "base64");
           if (req.body.mimeType) {
             mimeType = req.body.mimeType;
-            const mimeExt = mimeType.split('/')[1]?.toLowerCase();
-            ext = mimeExt === 'jpeg' ? 'jpg' : (mimeExt || 'jpg');
+            const mimeExt = mimeType.split("/")[1]?.toLowerCase();
+            ext = mimeExt === "jpeg" ? "jpg" : mimeExt || "jpg";
           }
         }
       }
 
       if (!buffer) {
-        return res.status(400).json({ success: false, message: 'No image file or base64 provided' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "No image file or base64 provided",
+          });
       }
 
       const fileName = `avatar-${userId}.${ext}`;
@@ -255,23 +308,23 @@ export class AuthController {
         fileName,
         mimeType,
         userId,
-        oldImageUrl
+        oldImageUrl,
       );
 
       // If requested, also update user's profile with this new avatar url
-      if (req.query?.updateUser === 'true' || req.body?.updateUser) {
+      if (req.query?.updateUser === "true" || req.body?.updateUser) {
         await userService.updateProfile(userId, { imageUrl });
       }
 
       return res.status(200).json({
         success: true,
-        message: 'Profile picture uploaded successfully',
+        message: "Profile picture uploaded successfully",
         data: { imageUrl },
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to upload profile picture',
+        message: error.message || "Failed to upload profile picture",
       });
     }
   };
@@ -283,14 +336,16 @@ export class AuthController {
     try {
       const userId = req.user?._id?.toString() || req.userId;
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'Unauthorized' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Unauthorized" });
       }
 
       const { currentPassword, newPassword } = req.body;
       if (!currentPassword || !newPassword) {
         return res.status(400).json({
           success: false,
-          message: 'Current password and new password are required',
+          message: "Current password and new password are required",
         });
       }
 
@@ -298,14 +353,93 @@ export class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Password changed successfully',
+        message: "Password changed successfully",
       });
     } catch (error: any) {
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to change password',
+        message: error.message || "Failed to change password",
       });
     }
+  };
+
+  /**
+   * Step 1: Sends OTP to user's email for password reset
+   */
+  sendOTP = async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      const result = await userService.sendOTP(email);
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to process forgot password request",
+      });
+    }
+  };
+
+  /**
+   * Step 2: Checks validity and expiration of submitted OTP
+   */
+  checkOTP = async (req: Request, res: Response) => {
+    try {
+      const { email, otp } = req.body;
+      const result = await userService.checkOTP(email, otp);
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to verify OTP",
+      });
+    }
+  };
+
+  /**
+   * Step 3: Resets password after verifying OTP and checking that OTPChecked is true
+   */
+  resetPassword = async (req: Request, res: Response) => {
+    try {
+      const {
+        email,
+        otp,
+        newPassword,
+        password,
+        confirmPassword,
+        passwordConfirmation,
+      } = req.body;
+
+      const result = await userService.resetPassword({
+        email,
+        otp,
+        newPassword: newPassword || password,
+        passwordConfirmation: confirmPassword || passwordConfirmation,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Failed to reset password",
+      });
+    }
+  };
+
+  /**
+   * Handles forgot password request (alias for sendOTP)
+   */
+  forgetPassword = async (req: Request, res: Response) => {
+    console.log("triggered Forget Password");
+    return this.sendOTP(req, res);
   };
 }
 

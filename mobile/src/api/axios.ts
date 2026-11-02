@@ -28,7 +28,7 @@ axiosInstance.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor: extract friendly error messages
@@ -39,8 +39,9 @@ axiosInstance.interceptors.response.use(
       error.response?.data?.message ||
       error.message ||
       "An unexpected network error occurred";
+    console.log(message);
     return Promise.reject(new Error(message));
-  }
+  },
 );
 
 export { axiosInstance as api };

@@ -9,12 +9,28 @@ router.post('/signup', authController.signup);
 
 // POST /auth/activate
 router.post('/activate', authController.activateAccount);
+router.get('/activate', authController.activateAccount);
+
+// POST /auth/activate-code
+router.post('/activate-code', authController.activateAccountWithCode);
 
 // POST /auth/resend-invitation
 router.post('/resend-invitation', authController.resendInvitation);
 
 // POST /auth/login
 router.post('/login', authController.login);
+
+// POST /auth/send-otp
+router.post('/send-otp', authController.sendOTP);
+
+// POST /auth/check-otp
+router.post('/check-otp', authController.checkOTP);
+
+// POST /auth/reset-password
+router.post('/reset-password', authController.resetPassword);
+
+// POST /auth/forget-password (alias for send-otp)
+router.post('/forget-password', authController.forgetPassword);
 
 // GET /auth/me (Protected route)
 router.get('/me', authenticatedOnly, authController.getMe);

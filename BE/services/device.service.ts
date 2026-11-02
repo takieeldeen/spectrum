@@ -1,4 +1,5 @@
 import DeviceModel from '../models/device.model';
+import PlugModel from '../models/plug.model';
 import { IDevice } from '../types/device.type';
 
 export class DeviceService {
@@ -14,29 +15,75 @@ export class DeviceService {
         { $set: { plugId: null, plugPort: null } }
       );
     }
+    if (!data.user && data.plugId) {
+      const plug = await PlugModel.findById(data.plugId);
+      if (plug?.user) {
+        data.user = plug.user as any;
+      }
+    }
     const created = await DeviceModel.create(data);
-    const populated = await DeviceModel.findById(created._id).populate('plugId', 'name arabicName');
+    const populated = await DeviceModel.findById(created._id).populate('plugId', 'name');
     return (populated || created) as IDevice;
   }
 
   /**
-   * Retrieves all Device entities from the database
+   * Retrieves all Device entities for the specified user (or all if no userId is provided)
+   * @param userId Optional user ID to filter devices
    * @returns Array of device entities
    */
-  async getAllDevices(): Promise<IDevice[]> {
-    return await DeviceModel.find({}).populate('plugId', 'name arabicName');
+  async getAllDevices(userId?: string): Promise<IDevice[]> {
+    if (!userId) {
+      return await DeviceModel.find({}).populate('plugId', 'name');
+    }
+
+    const userPlugs = await PlugModel.find({ user: userId }).select('_id');
+    const userPlugIds = userPlugs.map((p) => p._id);
+
+    return await DeviceModel.find({
+      $or: [
+        { user: userId },
+        { plugId: { $in: userPlugIds } },
+      ],
+    }).populate('plugId', 'name');
   }
 
   /**
    * Retrieves all unassigned Device entities (and optionally those assigned to a specific plug)
+   * scoped to the specified user
    * @param plugId Optional plug ID to include its devices
+   * @param userId Optional user ID to filter devices
    * @returns Array of device entities
    */
-  async getUnassignedDevices(plugId?: string): Promise<IDevice[]> {
-    if (plugId) {
-      return await DeviceModel.find({ $or: [{ plugId: null }, { plugId }] });
+  async getUnassignedDevices(plugId?: string, userId?: string): Promise<IDevice[]> {
+    if (!userId) {
+      if (plugId) {
+        return await DeviceModel.find({ $or: [{ plugId: null }, { plugId }] });
+      }
+      return await DeviceModel.find({ plugId: null });
     }
-    return await DeviceModel.find({ plugId: null });
+
+    const userPlugs = await PlugModel.find({ user: userId }).select('_id');
+    const userPlugIds = userPlugs.map((p) => p._id);
+
+    const userFilter = {
+      $or: [
+        { user: userId },
+        { plugId: { $in: userPlugIds } },
+      ],
+    };
+
+    if (plugId) {
+      return await DeviceModel.find({
+        $and: [
+          { $or: [{ plugId: null }, { plugId }] },
+          userFilter,
+        ],
+      });
+    }
+
+    return await DeviceModel.find({
+      $and: [{ plugId: null }, userFilter],
+    });
   }
 
   /**
@@ -45,7 +92,7 @@ export class DeviceService {
    * @returns The device entity
    */
   async getDeviceById(id: string): Promise<IDevice | null> {
-    return await DeviceModel.findById(id).populate('plugId', 'name arabicName');
+    return await DeviceModel.findById(id).populate('plugId', 'name');
   }
 
   /**
@@ -64,7 +111,7 @@ export class DeviceService {
       data.plugId = null as any;
       data.plugPort = null as any;
     }
-    return await DeviceModel.findByIdAndUpdate(id, data, { new: true }).populate('plugId', 'name arabicName');
+    return await DeviceModel.findByIdAndUpdate(id, data, { new: true }).populate('plugId', 'name');
   }
 
   /**

@@ -10,7 +10,6 @@ const PlugSchema: Schema<IPlug> = new Schema(
       index: true,
     },
     name: { type: String, required: true },
-    arabicName: { type: String, required: false },
     serialNumber: {
       type: String,
       required: true,
@@ -20,6 +19,7 @@ const PlugSchema: Schema<IPlug> = new Schema(
     SSID: { type: String, required: false },
     wifiPassword: { type: String, required: false },
     roomId: { type: String, required: false },
+    ipAddress: { type: String, required: false },
   },
   {
     timestamps: true,

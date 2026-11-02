@@ -19,6 +19,17 @@ export function I18nProvider({
         const stored = await getStoredLanguage();
         const targetLang =
           lang ?? stored ?? (I18nManager.isRTL ? "ar" : "en");
+        
+        const shouldBeRTL = targetLang === "ar";
+
+        // Always ensure RTL is allowed
+        I18nManager.allowRTL(true);
+
+        // If native direction does not match target language, force it
+        if (I18nManager.isRTL !== shouldBeRTL) {
+          I18nManager.forceRTL(shouldBeRTL);
+        }
+
         if (targetLang && targetLang !== i18n.language) {
           await i18n.changeLanguage(targetLang);
         }

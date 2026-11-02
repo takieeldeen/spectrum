@@ -212,7 +212,7 @@ export default function DeviceDetailsView({ deviceId }: Props) {
                     </Typography>
                     <Typography color="text.secondary">
                       {device?.plugId
-                        ? `${i18n.language === 'ar' ? device.plugId.arabicName || device.plugId.name : device.plugId.name} - ${t('PORT', 'مدخل')} ${device.plugPort}`
+                        ? `${device.plugId.name} - ${t('PORT', 'مدخل')} ${device.plugPort}`
                         : t('UNASSIGNED', 'غير معين')}
                     </Typography>
                   </Stack>
@@ -396,11 +396,7 @@ export default function DeviceDetailsView({ deviceId }: Props) {
                     <Typography color="text.secondary">المشترك</Typography>
                   </Stack>
                   <Typography color="text.secondary" sx={{ fontWeight: 700, fontSize: 12 }}>
-                    {device?.plugId
-                      ? i18n.language === 'ar'
-                        ? device.plugId.arabicName || device.plugId.name
-                        : device.plugId.name
-                      : '-'}
+                    {device?.plugId ? device.plugId.name : '-'}
                   </Typography>
                 </Stack>
                 <Stack alignItems="center" direction="row" spacing={1}>

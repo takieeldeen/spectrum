@@ -11,11 +11,18 @@ import Lucide from "@react-native-vector-icons/lucide";
 import { useTheme } from "@/hooks/use-theme";
 import ThemedText from "@/components/themed-text";
 import { INotificationItem } from "@/types/notifications";
-import { normalizeNotification, NormalizedNotification } from "@/utils/notification-normalizer";
+import {
+  normalizeNotification,
+  NormalizedNotification,
+} from "@/utils/notification-normalizer";
+import i18n from "@/i18n";
 
 export interface NotificationItemProps {
   item: INotificationItem;
-  onPress?: (item: INotificationItem, normalized: NormalizedNotification) => void;
+  onPress?: (
+    item: INotificationItem,
+    normalized: NormalizedNotification,
+  ) => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -58,7 +65,10 @@ export function formatNotificationTime(
     date.getFullYear() === now.getFullYear();
 
   if (isToday) {
-    const diffSec = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+    const diffSec = Math.max(
+      0,
+      Math.floor((now.getTime() - date.getTime()) / 1000),
+    );
     if (diffSec < 60) {
       return t("NOTIFICATIONS.JUST_NOW");
     }
@@ -136,9 +146,9 @@ export interface NotificationItemSkeletonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const NotificationItemSkeleton: React.FC<NotificationItemSkeletonProps> = ({
-  style,
-}) => {
+export const NotificationItemSkeleton: React.FC<
+  NotificationItemSkeletonProps
+> = ({ style }) => {
   const theme = useTheme();
   const styles = createStyles(theme);
 
@@ -168,19 +178,23 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       width: "100%",
       borderRadius: 20,
       padding: 14,
-      flexDirection: "row",
+      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
       alignItems: "flex-start",
       gap: 12,
     },
     unreadCard: {
       backgroundColor: theme.isDark ? "#142823" : "#E8F6ED",
       borderWidth: 1,
-      borderColor: theme.isDark ? "rgba(34, 197, 94, 0.28)" : "rgba(10, 122, 85, 0.16)",
+      borderColor: theme.isDark
+        ? "rgba(34, 197, 94, 0.28)"
+        : "rgba(10, 122, 85, 0.16)",
     },
     readCard: {
       backgroundColor: theme.backgroundElement,
       borderWidth: 1,
-      borderColor: theme.isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
+      borderColor: theme.isDark
+        ? "rgba(255, 255, 255, 0.06)"
+        : "rgba(0, 0, 0, 0.05)",
     },
     pressed: {
       opacity: 0.9,
@@ -194,24 +208,29 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
       alignItems: "center",
       borderWidth: 1,
-      borderColor: theme.isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(10, 122, 85, 0.08)",
+      borderColor: theme.isDark
+        ? "rgba(255, 255, 255, 0.08)"
+        : "rgba(10, 122, 85, 0.08)",
     },
     contentContainer: {
       flex: 1,
       gap: 4,
+      alignItems: i18n.language === "ar" ? "flex-end" : "flex-start",
     },
     title: {
       fontSize: 15.5,
       fontWeight: "800",
       color: theme.text,
+      textAlign: i18n.language === "ar" ? "right" : "left",
     },
     body: {
       fontSize: 13,
       lineHeight: 18,
       color: theme.textSecondary,
+      textAlign: i18n.language === "ar" ? "right" : "left",
     },
     metaContainer: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
       alignItems: "center",
       gap: 6,
       paddingTop: 2,
@@ -231,11 +250,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     skeletonCard: {
       backgroundColor: theme.backgroundElement,
       borderWidth: 1,
-      borderColor: theme.isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
+      borderColor: theme.isDark
+        ? "rgba(255, 255, 255, 0.05)"
+        : "rgba(0, 0, 0, 0.05)",
     },
     skeletonIconBox: {
       backgroundColor: theme.isDark ? theme.backgroundSecondary : "#F1F5F9",
-      borderColor: theme.isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)",
+      borderColor: theme.isDark
+        ? "rgba(255, 255, 255, 0.05)"
+        : "rgba(0, 0, 0, 0.04)",
     },
     skeletonLine: {
       backgroundColor: theme.isDark ? "rgba(255, 255, 255, 0.12)" : "#E2E8F0",
@@ -262,5 +285,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default NotificationItem;
-
-

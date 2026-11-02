@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import WifiModel, { decryptPassword } from "../models/wifi.model";
 import { IWifi } from "../types/wifi.type";
 
@@ -40,10 +41,17 @@ export class WifiService {
     userId: string,
     ssidOrId: string
   ): Promise<{ ssid: string; password: string } | null> {
-    const wifi = await WifiModel.findOne({
-      user: userId,
-      $or: [{ _id: ssidOrId }, { ssid: ssidOrId }],
-    }).select("+password");
+    if (!ssidOrId || typeof ssidOrId !== "string") return null;
+
+    const trimmed = ssidOrId.trim();
+    if (!trimmed) return null;
+
+    const isObjectId = mongoose.isValidObjectId(trimmed);
+    const query = isObjectId
+      ? { user: userId, $or: [{ _id: trimmed }, { ssid: trimmed }] }
+      : { user: userId, ssid: trimmed };
+
+    const wifi = await WifiModel.findOne(query).select("+password");
 
     if (!wifi) return null;
 

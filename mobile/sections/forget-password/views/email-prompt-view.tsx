@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   I18nManager,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -20,6 +21,8 @@ import Lucide from "@react-native-vector-icons/lucide";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import Logo from "@/components/logo";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useForgetPasswordMutation } from "@/api/auth";
 import { Stepper } from "../components/stepper";
 
 interface FormValues {
@@ -31,6 +34,8 @@ export function EmailPromptView() {
   const styles = createStyles(theme);
   const router = useRouter();
   const { t, i18n } = useTranslation();
+  const snackbar = useSnackbar();
+  const { mutate: sendForgetPassword, isPending } = useForgetPasswordMutation();
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
 
@@ -64,10 +69,32 @@ export function EmailPromptView() {
   });
 
   const onSubmit = (values: FormValues) => {
-    router.push({
-      pathname: "/forget-password/otp",
-      params: { email: values.email.trim() },
-    });
+    const cleanEmail = values.email.trim();
+    sendForgetPassword(
+      { email: cleanEmail },
+      {
+        onSuccess: (response) => {
+          snackbar.success(
+            t("FORGOT_PASSWORD.EMAIL_SENT_SUCCESS") ||
+              response?.message ||
+              t("FORGOT_PASSWORD.RESET_SUCCESS"),
+          );
+          router.push({
+            pathname: "/forget-password/otp",
+            params: { email: cleanEmail },
+          });
+        },
+        onError: (error: any) => {
+          const rawMessage =
+            error?.response?.data?.message || error?.message || "generic";
+          const localized =
+            t(`BE_ERROR.${rawMessage}` as any) !== `BE_ERROR.${rawMessage}`
+              ? t(`BE_ERROR.${rawMessage}` as any)
+              : rawMessage;
+          snackbar.error(localized || t("BE_ERROR.generic"));
+        },
+      },
+    );
   };
 
   return (
@@ -160,17 +187,32 @@ export function EmailPromptView() {
             {/* Submit Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.submitButton}
+              style={[
+                styles.submitButton,
+                isPending && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit(onSubmit)}
+              disabled={isPending}
             >
-              <ThemedText weight="700" style={styles.submitButtonText}>
-                {t("FORGOT_PASSWORD.CONTINUE")}
-              </ThemedText>
-              <Lucide
-                name={isRtl ? "chevron-left" : "chevron-right"}
-                size={20}
-                color="#FFFFFF"
-              />
+              {isPending ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ThemedText weight="700" style={styles.submitButtonText}>
+                    {t("FORGOT_PASSWORD.SENDING")}
+                  </ThemedText>
+                </>
+              ) : (
+                <>
+                  <ThemedText weight="700" style={styles.submitButtonText}>
+                    {t("FORGOT_PASSWORD.CONTINUE")}
+                  </ThemedText>
+                  <Lucide
+                    name={isRtl ? "chevron-left" : "chevron-right"}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -350,6 +392,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
           elevation: 3,
         },
       }),
+    },
+    submitButtonDisabled: {
+      opacity: 0.65,
     },
     submitButtonText: {
       color: "#FFFFFF",

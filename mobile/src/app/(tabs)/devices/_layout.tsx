@@ -27,13 +27,23 @@ const DevicesLayout = () => {
             color: theme.text,
             ...getAppFont("700", i18n.language),
           },
-          headerLeft: () => (
-            <Image
-              source={require("@/assets/images/spectrum-mini-logo.svg")}
-              contentFit="contain"
-              style={{ width: 32, height: 32, marginRight: 12 }}
-            />
-          ),
+          headerTitleAlign: i18n.language === "en" ? "left" : "center",
+          headerLeft: () =>
+            i18n.language === "en" ? (
+              <Image
+                source={require("@/assets/images/spectrum-mini-logo.svg")}
+                contentFit="contain"
+                style={{ width: 32, height: 32, marginRight: 12 }}
+              />
+            ) : null,
+          headerRight: () =>
+            i18n.language === "ar" ? (
+              <Image
+                source={require("@/assets/images/spectrum-mini-logo.svg")}
+                contentFit="contain"
+                style={{ width: 32, height: 32, marginRight: 12 }}
+              />
+            ) : null,
         }}
       />
       <Stack.Screen

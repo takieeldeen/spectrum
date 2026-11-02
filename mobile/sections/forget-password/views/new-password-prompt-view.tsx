@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   I18nManager,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -21,6 +22,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import Logo from "@/components/logo";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useResetPasswordMutation } from "@/api/auth";
 import { Stepper } from "../components/stepper";
 
 interface FormValues {
@@ -74,19 +76,51 @@ export function NewPasswordPromptView() {
     confirmPassword: "",
   };
 
+  const { mutate: performResetPassword, isPending } = useResetPasswordMutation();
+
   const {
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<FormValues>({
     resolver: yupResolver(formSchema) as any,
     defaultValues,
   });
 
-  const onSubmit = async (_values: FormValues) => {
-    snackbar.success(t("FORGOT_PASSWORD.RESET_SUCCESS"));
-    // Navigate back to login screen
-    router.replace("/login");
+  const onSubmit = (values: FormValues) => {
+    const cleanEmail = params.email?.trim() || "";
+    const cleanOtp = params.otp?.trim() || "";
+
+    if (!cleanEmail || !cleanOtp) {
+      snackbar.error(t("FORGOT_PASSWORD.OTP_REQUIRED"));
+      return;
+    }
+
+    performResetPassword(
+      {
+        email: cleanEmail,
+        otp: cleanOtp,
+        newPassword: values.newPassword,
+        passwordConfirmation: values.confirmPassword,
+      },
+      {
+        onSuccess: (res) => {
+          snackbar.success(
+            t("FORGOT_PASSWORD.RESET_SUCCESS") || res.message,
+          );
+          router.replace("/login");
+        },
+        onError: (error: any) => {
+          const rawMessage =
+            error?.response?.data?.message || error?.message || "generic";
+          const localized =
+            t(`BE_ERROR.${rawMessage}` as any) !== `BE_ERROR.${rawMessage}`
+              ? t(`BE_ERROR.${rawMessage}` as any)
+              : rawMessage;
+          snackbar.error(localized || t("BE_ERROR.generic"));
+        },
+      },
+    );
   };
 
   return (
@@ -256,18 +290,24 @@ export function NewPasswordPromptView() {
             {/* Submit Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.submitButton}
+              style={[styles.submitButton, isPending && { opacity: 0.8 }]}
               onPress={handleSubmit(onSubmit)}
-              disabled={isSubmitting}
+              disabled={isPending}
             >
-              <ThemedText weight="700" style={styles.submitButtonText}>
-                {t("FORGOT_PASSWORD.RESET_PASSWORD_BUTTON")}
-              </ThemedText>
-              <Lucide
-                name={isRtl ? "chevron-left" : "chevron-right"}
-                size={20}
-                color="#FFFFFF"
-              />
+              {isPending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <ThemedText weight="700" style={styles.submitButtonText}>
+                    {t("FORGOT_PASSWORD.RESET_PASSWORD_BUTTON")}
+                  </ThemedText>
+                  <Lucide
+                    name={isRtl ? "chevron-left" : "chevron-right"}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>

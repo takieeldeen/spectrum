@@ -15,6 +15,7 @@ import ThemedText from "@/components/themed-text";
 import { useAuth } from "@/context/auth-context";
 import { useUpdateProfileMutation } from "@/api/user";
 import { saveStoredTheme, getStoredTheme } from "@/utils/storage";
+import i18n from "@/i18n";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -41,7 +42,7 @@ const ThemeModeSettings: React.FC<ThemeModeSettingsProps> = ({
 
   // Determine current active mode from user model, initial prop, or local storage/system
   const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(
-    initialTheme ?? (user?.theme ?? "system")
+    initialTheme ?? user?.theme ?? "system",
   );
 
   React.useEffect(() => {
@@ -218,7 +219,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginTop: 20,
     },
     headerRow: {
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 12,

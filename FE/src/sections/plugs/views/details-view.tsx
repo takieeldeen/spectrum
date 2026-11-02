@@ -81,11 +81,7 @@ function PlugDetailsView({ id }: Props) {
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between">
         <Typography variant="h4">
-          {i18n.language === 'ar'
-            ? plug?.arabicName !== ''
-              ? plug?.arabicName
-              : plug?.name
-            : plug?.name}
+          {plug?.name}
         </Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <Button

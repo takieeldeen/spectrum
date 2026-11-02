@@ -23,6 +23,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { useGetDevices } from "@/api";
 import { usePlugs } from "@/providers/plug.provider";
 import { IDevice } from "@/types/device";
+import { Fade } from "@/components/ui/fade";
+import { Skeleton } from "@/components/ui/skeleton";
+import i18n from "@/i18n";
 
 interface DeviceItemDisplay {
   id: string;
@@ -54,7 +57,6 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
   item,
   onToggle,
   theme,
-  isRtl,
   styles,
 }) => {
   const { t } = useTranslation();
@@ -197,102 +199,180 @@ const DeviceCardItem: React.FC<DeviceCardItemProps> = ({
   );
 };
 
+/* ==========================================================================
+   SKELETON COMPONENT (For small RecentDevice card)
+   ========================================================================== */
+
+export interface RecentDeviceItemSkeletonProps {
+  styles: ReturnType<typeof createStyles>;
+}
+
+export const RecentDeviceItemSkeleton: React.FC<
+  RecentDeviceItemSkeletonProps
+> = ({ styles }) => {
+  return (
+    <View style={styles.skeletonCard}>
+      <View style={styles.rightGroup}>
+        <Skeleton
+          variant="rounded"
+          width={46}
+          height={46}
+          borderRadius={15}
+          animation="wave"
+        />
+        <View style={styles.skeletonInfo}>
+          <Skeleton
+            variant="text"
+            width={120}
+            height={16}
+            borderRadius={6}
+            animation="wave"
+          />
+          <Skeleton
+            variant="text"
+            width={160}
+            height={12}
+            borderRadius={4}
+            animation="wave"
+          />
+        </View>
+      </View>
+      <View style={styles.leftGroup}>
+        <View style={styles.powerInfo}>
+          <Skeleton
+            variant="text"
+            width={36}
+            height={16}
+            borderRadius={6}
+            animation="wave"
+          />
+          <Skeleton
+            variant="text"
+            width={20}
+            height={10}
+            borderRadius={4}
+            animation="wave"
+          />
+        </View>
+        <Skeleton
+          variant="circular"
+          width={44}
+          height={44}
+          borderRadius={22}
+          animation="wave"
+        />
+      </View>
+    </View>
+  );
+};
+
+/* ==========================================================================
+   EMPTY STATE COMPONENT (For small RecentDevices section)
+   ========================================================================== */
+
+export interface RecentDevicesEmptyStateProps {
+  onAddDevice?: () => void;
+  styles: ReturnType<typeof createStyles>;
+  theme: ReturnType<typeof useTheme>;
+}
+
+export const RecentDevicesEmptyState: React.FC<
+  RecentDevicesEmptyStateProps
+> = ({ onAddDevice, styles, theme }) => {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.emptyCard}>
+      <View style={styles.emptyIconBadge}>
+        <Lucide name="plug-zap" size={24} color={theme.primary} />
+      </View>
+      <ThemedText weight="700" style={styles.emptyTitle}>
+        {t("DASHBOARD.NO_RECENT_DEVICES")}
+      </ThemedText>
+      <ThemedText style={styles.emptySubtitle}>
+        {t("DASHBOARD.NO_RECENT_DEVICES_DESCRIPTION")}
+      </ThemedText>
+      {onAddDevice && (
+        <Pressable
+          onPress={onAddDevice}
+          style={({ pressed }) => [
+            styles.emptyButton,
+            pressed && { opacity: 0.8 },
+          ]}
+          accessibilityRole="button"
+        >
+          <Lucide name="plus" size={16} color={theme.primary} />
+          <ThemedText weight="700" style={styles.emptyButtonText}>
+            {t("NEW_DEVICE")}
+          </ThemedText>
+        </Pressable>
+      )}
+    </View>
+  );
+};
+
+/* ==========================================================================
+   MAIN RECENT DEVICES COMPONENT
+   ========================================================================== */
+
 export const RecentDevices: React.FC = () => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const isArabic = (i18n.language || "ar").startsWith("ar");
   const isRtl = I18nManager.isRTL || isArabic;
-  const { data: apiDevices } = useGetDevices();
+  const { data: apiDevices, isLoading } = useGetDevices();
   const { liveData, connected, sendOrder } = usePlugs();
 
   // Local optimistic state for device toggles
   const [localToggles, setLocalToggles] = useState<Record<string, boolean>>({});
 
-  // Map API devices with live socket data, or fall back to default screenshot samples
+  // Map API devices with live socket data
   const displayDevices = useMemo<DeviceItemDisplay[]>(() => {
-    if (apiDevices && apiDevices.length > 0) {
-      const activeOrRecent = apiDevices.slice(0, 4).map((device: IDevice) => {
-        const stripId =
-          typeof device.plugId === "string"
-            ? device.plugId
-            : device.plugId?._id;
-        const port = device.plugPort;
-        const outletKey = port ? (`outlet${port}` as "outlet1") : undefined;
-        const outletLiveData =
-          stripId && outletKey
-            ? liveData?.[stripId]?.outlets?.[outletKey]
-            : undefined;
-
-        const liveOn = outletLiveData?.on ?? false;
-        const isOn = localToggles[device._id] ?? liveOn;
-        const watts = outletLiveData?.power_W ?? (isOn ? 4.5 : 0);
-
-        const stripName =
-          typeof device.plugId === "object" && device.plugId
-            ? (isArabic ? device.plugId.arabicName : device.plugId.name) ||
-              device.plugId.name ||
-              device.plugId.arabicName
-            : "";
-
-        const locationPart = stripName ? `${stripName} · ` : "";
-        const portPart = port
-          ? t("DASHBOARD.OUTLET_NUMBER", { number: port })
-          : t("DASHBOARD.UNASSIGNED");
-        const statusPart = isOn
-          ? t("DASHBOARD.RUNNING_NOW")
-          : t("DASHBOARD.STOPPED");
-        const subtitle = `${locationPart}${portPart} · ${statusPart}`;
-
-        return {
-          id: device._id,
-          name: device.name || t("DASHBOARD.UNNAMED_DEVICE"),
-          subtitle,
-          watts,
-          isOn,
-          stripId,
-          port,
-        };
-      });
-
-      return activeOrRecent;
+    if (!apiDevices || apiDevices.length === 0) {
+      return [];
     }
 
-    // Default sample devices matching the design
-    const sampleDevices = [
-      {
-        id: "sample-1",
-        name: t("DASHBOARD.BALCONY_RADIO"),
-        portNumber: 3,
-        location: "",
-        watts: 6.06,
-        defaultOn: true,
-      },
-      {
-        id: "sample-2",
-        name: t("DASHBOARD.ROUTER"),
-        portNumber: 4,
-        location: t("DASHBOARD.LIVING_ROOM"),
-        watts: 0.56,
-        defaultOn: true,
-      },
-    ];
+    const activeOrRecent = apiDevices.slice(0, 4).map((device: IDevice) => {
+      const stripId =
+        typeof device.plugId === "string" ? device.plugId : device.plugId?._id;
+      const port = device.plugPort;
+      const outletKey = port ? (`outlet${port}` as "outlet1") : undefined;
+      const outletLiveData =
+        stripId && outletKey
+          ? liveData?.[stripId]?.outlets?.[outletKey]
+          : undefined;
 
-    return sampleDevices.map((d) => {
-      const isOn = localToggles[d.id] ?? d.defaultOn;
+      const liveOn = outletLiveData?.on ?? false;
+      const isOn = localToggles[device._id] ?? liveOn;
+      const watts = outletLiveData?.power_W ?? (isOn ? 4.5 : 0);
+
+      const stripName =
+        typeof device.plugId === "object" && device.plugId
+          ? device.plugId.name || ""
+          : "";
+
+      const locationPart = stripName ? `${stripName} · ` : "";
+      const portPart = port
+        ? t("DASHBOARD.OUTLET_NUMBER", { number: port })
+        : t("DASHBOARD.UNASSIGNED");
       const statusPart = isOn
         ? t("DASHBOARD.RUNNING_NOW")
         : t("DASHBOARD.STOPPED");
-      const locationPart = d.location ? `${d.location} · ` : "";
-      const portPart = t("DASHBOARD.OUTLET_NUMBER", { number: d.portNumber });
+      const subtitle = `${locationPart}${portPart} · ${statusPart}`;
+
       return {
-        id: d.id,
-        name: d.name,
+        id: device._id,
+        name: device.name || t("DASHBOARD.UNNAMED_DEVICE"),
+        subtitle,
+        watts,
         isOn,
-        watts: d.watts,
-        subtitle: `${locationPart}${portPart} · ${statusPart}`,
+        stripId,
+        port,
       };
     });
+
+    return activeOrRecent;
   }, [apiDevices, liveData, localToggles, t, isArabic]);
 
   const handleToggle = (item: DeviceItemDisplay) => {
@@ -315,10 +395,10 @@ export const RecentDevices: React.FC = () => {
     }
   };
 
-  const styles = useMemo(
-    () => createStyles(theme, isRtl, isArabic),
-    [theme, isRtl, isArabic],
-  );
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const hasDevices = !isLoading && displayDevices.length > 0;
+  const isEmpty = !isLoading && displayDevices.length === 0;
 
   return (
     <View style={styles.container}>
@@ -340,13 +420,33 @@ export const RecentDevices: React.FC = () => {
           <Lucide
             name={isRtl ? "chevron-left" : "chevron-right"}
             size={17}
-            color="#0A7A55"
+            color={theme.primaryDark}
           />
         </Pressable>
       </View>
 
-      {/* List of Device Cards with transition animations */}
-      <View style={styles.cardList}>
+      {/* 1. Loading State with Fade */}
+      <Fade in={isLoading} duration={250} unmountOnExit style={styles.cardList}>
+        <RecentDeviceItemSkeleton styles={styles} />
+        <RecentDeviceItemSkeleton styles={styles} />
+      </Fade>
+
+      {/* 2. Empty State with Fade */}
+      <Fade in={isEmpty} duration={250} unmountOnExit>
+        <RecentDevicesEmptyState
+          onAddDevice={handleNavigateToAll}
+          styles={styles}
+          theme={theme}
+        />
+      </Fade>
+
+      {/* 3. Loaded Device List with Fade */}
+      <Fade
+        in={hasDevices}
+        duration={250}
+        unmountOnExit
+        style={styles.cardList}
+      >
         {displayDevices.map((item) => (
           <DeviceCardItem
             key={item.id}
@@ -357,34 +457,25 @@ export const RecentDevices: React.FC = () => {
             styles={styles}
           />
         ))}
-      </View>
+      </Fade>
     </View>
   );
 };
 
 export default RecentDevices;
 
-const createStyles = (
-  theme: ReturnType<typeof useTheme>,
-  isRtl: boolean,
-  isArabic: boolean,
-) => {
-  const isDark = theme.isDark;
-  const naturalRow = isArabic
-    ? I18nManager.isRTL
-      ? "row"
-      : "row-reverse"
-    : I18nManager.isRTL
-      ? "row-reverse"
-      : "row";
+/* ==========================================================================
+   THEME-AWARE STYLES
+   ========================================================================== */
 
+const createStyles = (theme: ReturnType<typeof useTheme>) => {
   return StyleSheet.create({
     container: {
       gap: 12,
       width: "100%",
     },
     headerRow: {
-      flexDirection: naturalRow,
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 4,
@@ -394,10 +485,9 @@ const createStyles = (
       lineHeight: 26,
       fontWeight: "800",
       color: theme.text,
-      textAlign: isRtl ? "right" : "left",
     },
     seeAllButton: {
-      flexDirection: naturalRow,
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 3,
       paddingVertical: 4,
@@ -406,27 +496,27 @@ const createStyles = (
     seeAllText: {
       fontSize: 14,
       fontWeight: "700",
-      color: "#0A7A55",
+      color: theme.primaryDark,
     },
     cardList: {
       gap: 12,
     },
     card: {
       width: "100%",
-      backgroundColor: isDark ? theme.backgroundElement : "#FFFFFF",
+      backgroundColor: theme.cardBackground,
       borderRadius: 24,
       paddingHorizontal: 16,
       paddingVertical: 13,
       borderWidth: 1,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
-      flexDirection: naturalRow,
+      borderColor: theme.cardBorder,
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       ...Platform.select({
         ios: {
           shadowColor: "#000000",
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0.2 : 0.04,
+          shadowOpacity: theme.isDark ? 0.2 : 0.04,
           shadowRadius: 8,
         },
         android: {
@@ -434,8 +524,24 @@ const createStyles = (
         },
       }),
     },
+    skeletonCard: {
+      width: "100%",
+      backgroundColor: theme.cardBackground,
+      borderRadius: 24,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    skeletonInfo: {
+      gap: 6,
+      justifyContent: "center",
+    },
     rightGroup: {
-      flexDirection: naturalRow,
+      flexDirection: "row",
       alignItems: "center",
       gap: 12,
       flex: 1,
@@ -461,7 +567,7 @@ const createStyles = (
       borderRadius: 6,
       backgroundColor: "#10B981",
       borderWidth: 2,
-      borderColor: isDark ? theme.backgroundElement : "#FFFFFF",
+      borderColor: theme.cardBackground,
     },
     deviceInfo: {
       flex: 1,
@@ -473,7 +579,6 @@ const createStyles = (
       lineHeight: 22,
       fontWeight: "800",
       color: theme.text,
-      textAlign: isRtl ? "right" : "left",
     },
     deviceSubtitle: {
       fontSize: 12.5,
@@ -481,10 +586,9 @@ const createStyles = (
       fontWeight: "500",
       color: theme.textSecondary,
       marginTop: 2,
-      textAlign: isRtl ? "right" : "left",
     },
     leftGroup: {
-      flexDirection: naturalRow,
+      flexDirection: "row",
       alignItems: "center",
       gap: 12,
       marginStart: 12,
@@ -516,7 +620,7 @@ const createStyles = (
       justifyContent: "center",
       ...Platform.select({
         ios: {
-          shadowColor: "#0A7A55",
+          shadowColor: theme.primaryDark,
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.25,
           shadowRadius: 4,
@@ -537,6 +641,68 @@ const createStyles = (
       position: "absolute",
       alignItems: "center",
       justifyContent: "center",
+    },
+    emptyCard: {
+      width: "100%",
+      backgroundColor: theme.cardBackground,
+      borderRadius: 24,
+      paddingHorizontal: 20,
+      paddingVertical: 28,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      ...Platform.select({
+        ios: {
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: theme.isDark ? 0.2 : 0.04,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 1,
+        },
+      }),
+    },
+    emptyIconBadge: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: theme.tintedIconBackground,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: theme.text,
+      textAlign: "center",
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.textSecondary,
+      textAlign: "center",
+      maxWidth: 280,
+    },
+    emptyButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.primary,
+      backgroundColor: theme.tintedIconBackground,
+    },
+    emptyButtonText: {
+      fontSize: 13,
+      color: theme.primary,
     },
   });
 };

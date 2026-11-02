@@ -4,6 +4,8 @@ import {
   CreatePlugPayload,
   PlugApiResponse,
   PlugListApiResponse,
+  PlugVerificationData,
+  PlugVerificationResponse,
 } from "@/types/plug";
 import api from "./axios";
 
@@ -156,5 +158,29 @@ export const useDeletePlug = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plugs"] });
     },
+  });
+};
+
+/**
+ * Checks whether backend has received telemetry from the strip
+ */
+export async function verifyPlugConnection(
+  plugId: string,
+): Promise<PlugVerificationData> {
+  const { data } = await api.get<PlugVerificationResponse>(
+    `/plugs/${plugId}/verify`,
+  );
+  return data.data;
+}
+
+/**
+ * TanStack Query hook to verify strip connection with the backend
+ */
+export const useVerifyPlugConnection = (plugId?: string) => {
+  return useQuery<PlugVerificationData, Error>({
+    queryKey: ["plugs", "verify", plugId],
+    queryFn: () => verifyPlugConnection(plugId!),
+    enabled: Boolean(plugId),
+    refetchInterval: 2000,
   });
 };

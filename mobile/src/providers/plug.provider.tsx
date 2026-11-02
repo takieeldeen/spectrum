@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -22,7 +23,9 @@ type PlugsContextValue = {
   connected: boolean;
   sendOrder: (plugId: string, command: string) => void;
   toggleAll: (plugId: string, newState: "on" | "off") => void;
+  joinPlug: (plugId: string) => void;
   allOutlets: OutletData[][];
+  socket: Socket | null;
 };
 
 const PlugsContext = createContext<PlugsContextValue | null>(null);
@@ -126,12 +129,37 @@ export function PlugsProvider({ children }: { children: React.ReactNode }) {
     };
   }, [token]);
 
+  const joinedPlugsRef = useRef<Set<string>>(new Set());
+
+  // Reset joined plugs on disconnect
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleDisconnect = () => {
+      joinedPlugsRef.current.clear();
+    };
+
+    socket.on("disconnect", handleDisconnect);
+    return () => {
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, []);
+
   // 2. join every plug (again after each reconnect)
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !plugs) return;
 
-    const joinAll = () => plugs.forEach((p) => socket.emit("join_plug", p._id));
+    const joinAll = () => {
+      plugs.forEach((p) => {
+        if (p._id && !joinedPlugsRef.current.has(p._id)) {
+          joinedPlugsRef.current.add(p._id);
+          socket.emit("join_plug", p._id);
+        }
+      });
+    };
+
     if (socket.connected) joinAll();
     socket.on("connect", joinAll);
 
@@ -140,17 +168,35 @@ export function PlugsProvider({ children }: { children: React.ReactNode }) {
     };
   }, [plugs]);
 
-  const sendOrder = (plugId: string, command: string) => {
+  const sendOrder = useCallback((plugId: string, command: string) => {
     socketRef.current?.emit("order_plug", { plugId, command });
-  };
+  }, []);
 
-  const toggleAll = (plugId: string, newState: "on" | "off") => {
-    socketRef.current?.emit("toggle_all_plugs", { plugId, newState });
-  };
+  const toggleAll = useCallback(
+    (plugId: string, newState: "on" | "off") => {
+      socketRef.current?.emit("toggle_all_plugs", { plugId, newState });
+    },
+    [],
+  );
+
+  const joinPlug = useCallback((plugId: string) => {
+    if (plugId) {
+      joinedPlugsRef.current.add(plugId);
+      socketRef.current?.emit("join_plug", plugId);
+    }
+  }, []);
 
   return (
     <PlugsContext.Provider
-      value={{ liveData, connected, sendOrder, toggleAll, allOutlets }}
+      value={{
+        liveData,
+        connected,
+        sendOrder,
+        toggleAll,
+        joinPlug,
+        allOutlets,
+        socket: socketRef.current,
+      }}
     >
       {children}
     </PlugsContext.Provider>

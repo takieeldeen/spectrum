@@ -178,7 +178,7 @@ function DeviceCard({ device }: DeviceCardProps) {
               </Stack>
               <Typography sx={{ fontSize: 15 }} color="text.secondary">
                 {device?.plugId && typeof device.plugId === 'object'
-                  ? `${i18n.language === 'ar' ? device.plugId.arabicName || device.plugId.name : device.plugId.name} - ${t('PORT')} ${device.plugPort}`
+                  ? `${device.plugId.name} - ${t('PORT')} ${device.plugPort}`
                   : t('UNASSIGNED')}
               </Typography>
             </Stack>

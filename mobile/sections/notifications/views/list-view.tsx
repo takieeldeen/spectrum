@@ -31,6 +31,7 @@ import {
 } from "@/api/notifications";
 import { INotificationItem } from "@/types/notifications";
 import { NormalizedNotification } from "@/utils/notification-normalizer";
+import i18n from "@/i18n";
 
 const NotificationsListView = () => {
   // State Management
@@ -66,7 +67,7 @@ const NotificationsListView = () => {
 
   const handlePressNotification = (
     item: INotificationItem,
-    normalized: NormalizedNotification
+    normalized: NormalizedNotification,
   ) => {
     // 1. Mark as read on backend if unread
     if (item.readAt === null) {
@@ -122,7 +123,12 @@ const NotificationsListView = () => {
           <View style={styles.iconContainer}>
             <Lucide name="bell" size={24} color="white" />
           </View>
-          <View style={{ flex: 1 }}>
+          <View
+            style={{
+              flex: 1,
+              alignItems: i18n.language === "ar" ? "flex-end" : "flex-start",
+            }}
+          >
             <ThemedText style={styles.headerTitle}>
               {t("NOTIFICATIONS.UNREAD_COUNT", { count: unreadCount })}
             </ThemedText>
@@ -148,12 +154,17 @@ const NotificationsListView = () => {
       <FilterOptions currentFilter={filter} onFilter={(f) => setFilter(f)} />
 
       {/* Loading View with Fade */}
-      <Fade in={isLoading} duration={250} style={{ flex: 1 }}>
+      <Fade in={isLoading} duration={250} style={{ flex: 1 }} exitDuration={0}>
         <NotificationsLoadingList count={6} />
       </Fade>
 
       {/* Empty View with Fade & RefreshControl */}
-      <Fade in={!isLoading && groupedSections.length === 0} duration={250} style={{ flex: 1 }}>
+      <Fade
+        in={!isLoading && groupedSections.length === 0}
+        exitDuration={0}
+        duration={250}
+        style={{ flex: 1 }}
+      >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1 }}
@@ -163,7 +174,9 @@ const NotificationsListView = () => {
               onRefresh={refetch}
               colors={[theme.primary]}
               tintColor={theme.primary}
-              progressBackgroundColor={theme.isDark ? theme.backgroundElement : "#FFFFFF"}
+              progressBackgroundColor={
+                theme.isDark ? theme.backgroundElement : "#FFFFFF"
+              }
             />
           }
         >
@@ -172,15 +185,16 @@ const NotificationsListView = () => {
       </Fade>
 
       {/* Populated List View with SectionList & Infinite Scrolling */}
-      <Fade in={!isLoading && groupedSections.length > 0} duration={250} style={{ flex: 1 }}>
+      <Fade
+        in={!isLoading && groupedSections.length > 0}
+        duration={250}
+        style={{ flex: 1 }}
+      >
         <SectionList
           sections={groupedSections}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <NotificationItem
-              item={item}
-              onPress={handlePressNotification}
-            />
+            <NotificationItem item={item} onPress={handlePressNotification} />
           )}
           renderSectionHeader={({ section: { title } }) => (
             <ThemedText style={styles.sectionHeader}>{title}</ThemedText>
@@ -204,7 +218,9 @@ const NotificationsListView = () => {
               onRefresh={refetch}
               colors={[theme.primary]}
               tintColor={theme.primary}
-              progressBackgroundColor={theme.isDark ? theme.backgroundElement : "#FFFFFF"}
+              progressBackgroundColor={
+                theme.isDark ? theme.backgroundElement : "#FFFFFF"
+              }
             />
           }
           contentContainerStyle={styles.listContent}
@@ -230,7 +246,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       padding: 14,
       backgroundColor: theme.primaryDark,
       borderRadius: 16,
-      flexDirection: "row",
+      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
       alignItems: "center",
       gap: 12,
     },
@@ -246,11 +262,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
       color: "#FFFFFF",
       fontSize: 15,
+      textAlign: i18n.language === "ar" ? "right" : "left",
     },
     headerSubTitle: {
       color: "rgba(255, 255, 255, 0.8)",
       fontSize: 12,
       marginTop: 2,
+      textAlign: i18n.language === "ar" ? "right" : "left",
     },
     markAllButton: {
       backgroundColor: "rgba(255, 255, 255, 0.2)",

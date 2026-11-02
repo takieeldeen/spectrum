@@ -12,19 +12,23 @@ export async function restartApp(): Promise<void> {
     return;
   }
 
-  // 1. Try expo-updates reloadAsync
+  // 1. Try DevSettings.reload first in development
+  if (__DEV__ && DevSettings && typeof DevSettings.reload === "function") {
+    try {
+      DevSettings.reload();
+      return;
+    } catch (e) {
+      // DevSettings reload fallback
+    }
+  }
+
+  // 2. Try expo-updates reloadAsync in production / standalone
   try {
     if (Updates && typeof Updates.reloadAsync === "function") {
       await Updates.reloadAsync();
       return;
     }
   } catch (e) {
-    // Updates.reloadAsync might not be supported in development client without release channel
-  }
-
-  // 2. Try DevSettings.reload in development
-  if (__DEV__ && DevSettings && typeof DevSettings.reload === "function") {
-    DevSettings.reload("Language layout change");
-    return;
+    // Updates.reloadAsync might not be supported without release channel
   }
 }

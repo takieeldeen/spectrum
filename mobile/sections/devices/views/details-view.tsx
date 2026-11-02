@@ -85,11 +85,7 @@ export function DeviceDetailsView({ deviceId }: DeviceDetailsViewProps) {
   }, [isOn, timerSheetVisible]);
 
   const plugObj = typeof data?.plugId === "object" ? data.plugId : undefined;
-  const stripName = plugObj
-    ? isArabic
-      ? plugObj.arabicName || plugObj.name
-      : plugObj.name || plugObj.arabicName
-    : undefined;
+  const stripName = plugObj?.name;
 
   const subtitle = !isAssigned
     ? t("DEVICE_DETAILS.STATUS_UNASSIGNED")

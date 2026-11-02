@@ -1,6 +1,5 @@
-// hooks/use-control-strip.ts
 import { usePlugs } from "@/providers/plug.provider";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 // adjust path to where your provider lives
 
 export interface OutletData {
@@ -79,7 +78,16 @@ export function useControlStrip({ stripId }: { stripId: string }) {
     connected,
     sendOrder: send,
     toggleAll,
+    joinPlug,
   } = usePlugs();
+
+  const [fallbackState, setFallbackState] = useState<"on" | "off">("on");
+
+  useEffect(() => {
+    if (stripId && connected) {
+      joinPlug(stripId);
+    }
+  }, [stripId, connected, joinPlug]);
 
   const liveData: PlugData | null = allLiveData[stripId] ?? null;
   const isLoading = !liveData;
@@ -107,11 +115,24 @@ export function useControlStrip({ stripId }: { stripId: string }) {
     [connected, send, stripId],
   );
 
-  const toggleAllOutlet = useCallback(() => {
-    if (!connected || !stripState) return;
-    const allOff = Object.values(stripState).every((o) => !o.on);
-    toggleAll(stripId, allOff ? "on" : "off");
-  }, [connected, stripState, stripId, toggleAll]);
+  const toggleAllOutlet = useCallback(
+    (explicitState?: "on" | "off") => {
+      if (!connected) return;
+      if (explicitState) {
+        toggleAll(stripId, explicitState);
+        return;
+      }
+      if (stripState) {
+        const allOff = Object.values(stripState).every((o) => !o.on);
+        toggleAll(stripId, allOff ? "on" : "off");
+      } else {
+        const next = fallbackState === "on" ? "off" : "on";
+        setFallbackState(next);
+        toggleAll(stripId, next);
+      }
+    },
+    [connected, stripState, stripId, toggleAll, fallbackState],
+  );
 
   return {
     liveData,

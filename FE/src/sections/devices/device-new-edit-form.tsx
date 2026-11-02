@@ -21,6 +21,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useForm } from 'react-hook-form';
 import { Form, RHFTextField } from 'src/components/hook-form';
 import { useCreateDevice } from 'src/api/device';
+import i18n from 'src/i18n';
 
 type Props = {
   open: boolean;
@@ -31,7 +32,11 @@ export default function DeviceNewEditForm({ open, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
     open: false,
     message: '',
     severity: 'success',
@@ -113,12 +118,18 @@ export default function DeviceNewEditForm({ open, onClose }: Props) {
 
             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2.5 }}>
               <Stack spacing={3}>
-                <Stack spacing={1}>
+                <Stack
+                  spacing={1}
+                  sx={{ alignItems: i18n.language === 'en' ? 'flex-start' : 'flex-end' }}
+                >
                   <Typography>{t('ENGLISH_NAME', 'English Name')}</Typography>
                   <RHFTextField name="name" placeholder={t('ENGLISH_NAME', 'English Name')} />
                 </Stack>
 
-                <Stack spacing={1}>
+                <Stack
+                  spacing={1}
+                  sx={{ alignItems: i18n.language === 'en' ? 'flex-start' : 'flex-end' }}
+                >
                   <Typography>{t('ARABIC_NAME', 'Arabic Name')}</Typography>
                   <RHFTextField name="arabicName" placeholder={t('ARABIC_NAME', 'Arabic Name')} />
                 </Stack>

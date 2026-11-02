@@ -19,6 +19,7 @@ import { useActivateStrip } from "@/hooks/use-activate-strip";
 import { useGetPlugById, useTogglePlugOutlet } from "@/api/plug";
 import { DEFAULT_SERVER_HOST } from "@/constants/api";
 import { getAppFont } from "@/constants/fonts";
+import { useTranslation } from "react-i18next";
 
 interface PlugActivationDetailsViewProps {
   onCancel?: () => void;
@@ -37,19 +38,20 @@ const PlugActivationDetailsView = ({
     password?: string;
   }>();
   const isDark = theme.isDark;
+  const { t, i18n } = useTranslation();
 
   // Fetch plug info from backend if plugId is present
   const { data: plugData, isLoading: isLoadingPlug } = useGetPlugById(
-    params.plugId
+    params.plugId,
   );
 
   // Form Inputs initialized with route params if navigated from creation
   const [serialNumber, setSerialNumber] = useState<string>(
-    params.serialNumber || ""
+    params.serialNumber || "",
   );
   const [wifiSsid, setWifiSsid] = useState<string>(params.ssid || "");
   const [wifiPassword, setWifiPassword] = useState<string>(
-    params.password || ""
+    params.password || "",
   );
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const autoStartedRef = React.useRef(false);
@@ -73,7 +75,9 @@ const PlugActivationDetailsView = ({
   } = useActivateStrip();
 
   // Test outlet state & toggle mutation for post-activation test
-  const [testOutletStates, setTestOutletStates] = useState<Record<number, boolean>>({
+  const [testOutletStates, setTestOutletStates] = useState<
+    Record<number, boolean>
+  >({
     1: false,
     2: false,
     3: false,
@@ -187,25 +191,38 @@ const PlugActivationDetailsView = ({
     });
   };
 
+  const isHotspotNotFound = currentStep === "HOTSPOT_NOT_FOUND";
+
   const stepMeta = [
     {
-      title: "الاتصال بشبكة المشترك Wi-Fi",
-      subtitle: "نقوم الآن بتغيير شبكة الـ Wi-Fi لديك إلى نقطة البث الخاصة بالمشترك",
+      title: t("PLUG_ACTIVATION.STEP_SCAN_TITLE"),
+      subtitle: t("PLUG_ACTIVATION.STEP_SCAN_SUBTITLE"),
+      icon: "radar",
+    },
+    {
+      title: t("PLUG_ACTIVATION.STEP_CONNECT_TITLE"),
+      subtitle: t("PLUG_ACTIVATION.STEP_CONNECT_SUBTITLE"),
       icon: "wifi",
     },
     {
-      title: "إرسال بيانات الشبكة إلى الجهاز",
-      subtitle: "جاري برمجة المشترك ببيانات شبكة المنزل عبر بروتوكول TCP",
+      title: t("PLUG_ACTIVATION.STEP_SEND_TITLE"),
+      subtitle: t("PLUG_ACTIVATION.STEP_SEND_SUBTITLE"),
       icon: "cloud-upload",
     },
     {
-      title: "الاتصال بالمشترك والتحقق",
-      subtitle: "جاري انتظار اتصال المشترك بشبكة المنزل والتحقق من الاستجابة",
+      title: t("PLUG_ACTIVATION.STEP_VERIFY_TITLE"),
+      subtitle: t("PLUG_ACTIVATION.STEP_VERIFY_SUBTITLE"),
       icon: "settings",
     },
   ];
 
-  const currentMeta = stepMeta[Math.min(stepIndex - 1, stepMeta.length - 1)];
+  const currentMeta = isHotspotNotFound
+    ? {
+        title: t("PLUG_ACTIVATION.NOT_FOUND_TITLE"),
+        subtitle: t("PLUG_ACTIVATION.NOT_FOUND_SUBTITLE"),
+        icon: "wifi-off",
+      }
+    : stepMeta[Math.min(stepIndex - 1, stepMeta.length - 1)];
 
   return (
     <ScrollView
@@ -243,14 +260,16 @@ const PlugActivationDetailsView = ({
               duration={isActivating ? 1400 : 2200}
             >
               <Lucide
-                name={(currentMeta.icon as any) || "wifi"}
+                name={(currentMeta?.icon as any) || "wifi"}
                 size={isActivating ? 110 : 90}
                 color={
                   isError
                     ? "#EF4444"
-                    : isSuccess
-                      ? "#10B981"
-                      : theme.primary
+                    : isHotspotNotFound
+                      ? "#F59E0B"
+                      : isSuccess
+                        ? "#10B981"
+                        : theme.primary
                 }
               />
             </RippleEffect>
@@ -271,7 +290,7 @@ const PlugActivationDetailsView = ({
         {/* Step Title & Subtitle */}
         <View style={{ alignItems: "center", paddingHorizontal: 20 }}>
           <ThemedText type="smallBold" style={{ fontSize: 20, lineHeight: 28 }}>
-            {stepIndex}. {currentMeta.title}
+            {stepIndex}. {currentMeta?.title}
           </ThemedText>
           <ThemedText
             style={{
@@ -282,7 +301,13 @@ const PlugActivationDetailsView = ({
               marginTop: 4,
             }}
           >
-            {statusMessage || currentMeta.subtitle}
+            {isHotspotNotFound
+              ? t("PLUG_ACTIVATION.NOT_FOUND_SUBTITLE")
+              : currentStep === "SCANNING_STRIP_WIFI"
+                ? t("PLUG_ACTIVATION.SCANNING_FOR_STRIP", {
+                    name: `TONLY_TAP_${(serialNumber || "").slice(-7)}`,
+                  })
+                : statusMessage || currentMeta?.subtitle}
           </ThemedText>
         </View>
 
@@ -300,7 +325,7 @@ const PlugActivationDetailsView = ({
             {/* Serial Number Row */}
             <View style={{ gap: 6 }}>
               <ThemedText style={styles.label}>
-                الرقم التسلسلي للمشترك (Serial Number)
+                {t("PLUG_ACTIVATION.SERIAL_NUMBER_LABEL")}
               </ThemedText>
               <View
                 style={[
@@ -315,7 +340,7 @@ const PlugActivationDetailsView = ({
                 <TextInput
                   value={serialNumber}
                   onChangeText={setSerialNumber}
-                  placeholder="2CFDB3C1DE06"
+                  placeholder={t("PLUG_ACTIVATION.SERIAL_NUMBER_PLACEHOLDER")}
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   autoCapitalize="characters"
                   style={[styles.input, { color: theme.text }]}
@@ -326,7 +351,7 @@ const PlugActivationDetailsView = ({
             {/* Wi-Fi SSID Row */}
             <View style={{ gap: 6 }}>
               <ThemedText style={styles.label}>
-                اسم شبكة Wi-Fi المنزلية (2.4GHz)
+                {t("PLUG_ACTIVATION.WIFI_SSID_LABEL")}
               </ThemedText>
               <View
                 style={[
@@ -341,7 +366,7 @@ const PlugActivationDetailsView = ({
                 <TextInput
                   value={wifiSsid}
                   onChangeText={setWifiSsid}
-                  placeholder="اسم شبكة Wi-Fi"
+                  placeholder={t("PLUG_ACTIVATION.WIFI_SSID_PLACEHOLDER")}
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   style={[styles.input, { color: theme.text }]}
                 />
@@ -351,7 +376,7 @@ const PlugActivationDetailsView = ({
             {/* Wi-Fi Password Row */}
             <View style={{ gap: 6 }}>
               <ThemedText style={styles.label}>
-                كلمة مرور شبكة الـ Wi-Fi
+                {t("PLUG_ACTIVATION.WIFI_PASSWORD_LABEL")}
               </ThemedText>
               <View
                 style={[
@@ -366,7 +391,7 @@ const PlugActivationDetailsView = ({
                 <TextInput
                   value={wifiPassword}
                   onChangeText={setWifiPassword}
-                  placeholder="كلمة المرور"
+                  placeholder={t("PLUG_ACTIVATION.WIFI_PASSWORD_PLACEHOLDER")}
                   secureTextEntry={!showPassword}
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   style={[styles.input, { color: theme.text }]}
@@ -388,9 +413,140 @@ const PlugActivationDetailsView = ({
             <View style={styles.hintBox}>
               <Lucide name="info" size={16} color="#3B82F6" />
               <ThemedText style={styles.hintText}>
-                تأكد من توصيل المشترك بالكهرباء وضغط الزر الرئيسي لـ 5 ثوانٍ حتى
-                يومض المؤشر باللون الأزرق.
+                {t("PLUG_ACTIVATION.SETUP_HINT")}
               </ThemedText>
+            </View>
+          </View>
+        )}
+
+        {/* ── CARD VARIANT: HOTSPOT NOT FOUND / PAIRING MODE INSTRUCTIONS ── */}
+        {isHotspotNotFound && (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: isDark ? "#291F0D" : "#FFFBEB",
+                borderColor: isDark ? "#78350F" : "#FDE68A",
+              },
+            ]}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: isDark ? "#451A03" : "#FEF3C7",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Lucide name="wifi-off" size={20} color="#D97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "700",
+                    color: isDark ? "#FBBF24" : "#B45309",
+                  }}
+                >
+                  {t("PLUG_ACTIVATION.PAIRING_MODE_TITLE")}
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    fontSize: 12,
+                    color: isDark ? "#FCD34D" : "#92400E",
+                    marginTop: 2,
+                  }}
+                >
+                  {t("PLUG_ACTIVATION.NOT_FOUND_SUBTITLE")}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Instruction Message Box */}
+            <View
+              style={[
+                styles.hintBox,
+                {
+                  backgroundColor: isDark ? "#38240D" : "#FEF3C7",
+                  borderColor: isDark ? "#92400E" : "#FCD34D",
+                  borderWidth: 1,
+                  gap: 12,
+                  padding: 14,
+                },
+              ]}
+            >
+              <Lucide
+                name="radio"
+                size={22}
+                color="#D97706"
+                style={{ marginTop: 2 }}
+              />
+              <View style={{ flex: 1, gap: 6 }}>
+                <ThemedText
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    lineHeight: 22,
+                    color: isDark ? "#FEF3C7" : "#78350F",
+                  }}
+                >
+                  {t("PLUG_ACTIVATION.PAIRING_MODE_INSTRUCTION")}
+                </ThemedText>
+                <View style={{ gap: 4, marginTop: 4 }}>
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      color: isDark ? "#FCD34D" : "#92400E",
+                    }}
+                  >
+                    1. {t("PLUG_ACTIVATION.STEP_1_INSTRUCTION")}
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      color: isDark ? "#FCD34D" : "#92400E",
+                    }}
+                  >
+                    2. {t("PLUG_ACTIVATION.STEP_2_INSTRUCTION")}
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      color: isDark ? "#FCD34D" : "#92400E",
+                    }}
+                  >
+                    3. {t("PLUG_ACTIVATION.STEP_3_INSTRUCTION")}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onPress={reset}
+                style={{ flex: 1, minHeight: 46 }}
+              >
+                {t("PLUG_ACTIVATION.EDIT_DETAILS")}
+              </Button>
+              <Button
+                variant="contained"
+                onPress={retry}
+                style={{
+                  flex: 1,
+                  minHeight: 46,
+                  backgroundColor: theme.primary,
+                }}
+              >
+                {t("PLUG_ACTIVATION.RETRY")}
+              </Button>
             </View>
           </View>
         )}
@@ -410,13 +566,15 @@ const PlugActivationDetailsView = ({
             <View style={styles.infoRow}>
               <View style={styles.iconLabelGroup}>
                 <Lucide name="wifi" size={20} color={theme.primary} />
-                <ThemedText style={styles.infoLabel}>شبكة Wi-Fi</ThemedText>
+                <ThemedText style={styles.infoLabel}>
+                  {t("PLUG_ACTIVATION.WIFI_INFO_LABEL")}
+                </ThemedText>
               </View>
               <View style={styles.valueGroup}>
                 <ThemedText style={styles.infoValue}>
-                  {wifiSsid || "جاري التحديد..."}
+                  {wifiSsid || t("PLUG_ACTIVATION.DETERMINING_WIFI")}
                 </ThemedText>
-                {stepIndex > 1 ? (
+                {stepIndex > 2 ? (
                   <View
                     style={[
                       styles.statusBadge,
@@ -435,13 +593,17 @@ const PlugActivationDetailsView = ({
             <View style={styles.infoRow}>
               <View style={styles.iconLabelGroup}>
                 <Lucide name="lock" size={20} color={theme.primary} />
-                <ThemedText style={styles.infoLabel}>كلمة المرور</ThemedText>
+                <ThemedText style={styles.infoLabel}>
+                  {t("PLUG_ACTIVATION.PASSWORD_INFO_LABEL")}
+                </ThemedText>
               </View>
               <View style={styles.valueGroup}>
                 <ThemedText style={styles.passwordDots}>
-                  {wifiPassword ? "••••••••••" : "بدون كلمة مرور"}
+                  {wifiPassword
+                    ? "••••••••••"
+                    : t("PLUG_ACTIVATION.NO_PASSWORD")}
                 </ThemedText>
-                {stepIndex > 2 ? (
+                {stepIndex > 3 ? (
                   <View
                     style={[
                       styles.statusBadge,
@@ -450,7 +612,7 @@ const PlugActivationDetailsView = ({
                   >
                     <Lucide name="check" size={12} color="#FFFFFF" />
                   </View>
-                ) : stepIndex === 2 ? (
+                ) : stepIndex === 3 ? (
                   <ActivityIndicator size="small" color={theme.primary} />
                 ) : (
                   <Lucide name="clock" size={16} color={theme.textSecondary} />
@@ -479,7 +641,7 @@ const PlugActivationDetailsView = ({
                   color: theme.primary,
                 }}
               >
-                {statusMessage || "جاري تهيئة المشترك..."}
+                {statusMessage || t("PLUG_ACTIVATION.CONFIGURING_PLUG")}
               </ThemedText>
               <ActivityIndicator size="small" color={theme.primary} />
             </View>
@@ -497,7 +659,9 @@ const PlugActivationDetailsView = ({
               },
             ]}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
               <Lucide name="alert-triangle" size={24} color="#EF4444" />
               <ThemedText
                 style={{
@@ -506,7 +670,7 @@ const PlugActivationDetailsView = ({
                   color: "#EF4444",
                 }}
               >
-                تعذر إكمال التفعيل
+                {t("PLUG_ACTIVATION.ACTIVATION_FAILED_TITLE")}
               </ThemedText>
             </View>
 
@@ -517,7 +681,7 @@ const PlugActivationDetailsView = ({
                 color: isDark ? "#FCA5A5" : "#991B1B",
               }}
             >
-              {error?.message || "حدث خطأ أثناء الاتصال بالمشترك."}
+              {error?.message || t("PLUG_ACTIVATION.ACTIVATION_FAILED_DEFAULT")}
             </ThemedText>
 
             {error?.recoveryHint && (
@@ -549,7 +713,7 @@ const PlugActivationDetailsView = ({
                 onPress={reset}
                 style={{ flex: 1, minHeight: 46 }}
               >
-                تعديل البيانات
+                {t("PLUG_ACTIVATION.EDIT_DETAILS")}
               </Button>
               <Button
                 variant="contained"
@@ -560,7 +724,7 @@ const PlugActivationDetailsView = ({
                   backgroundColor: theme.primary,
                 }}
               >
-                إعادة المحاولة
+                {t("PLUG_ACTIVATION.TRY_AGAIN")}
               </Button>
             </View>
           </View>
@@ -607,7 +771,7 @@ const PlugActivationDetailsView = ({
                     color: isDark ? "#34D399" : "#166534",
                   }}
                 >
-                  تم تفعيل المشترك بنجاح!
+                  {t("PLUG_ACTIVATION.ACTIVATION_SUCCESS_TITLE")}
                 </ThemedText>
               </View>
 
@@ -629,7 +793,7 @@ const PlugActivationDetailsView = ({
                   >
                     {activatedStripIp.includes(".")
                       ? `IP: ${activatedStripIp}`
-                      : "متصل سحابياً"}
+                      : t("PLUG_ACTIVATION.CONNECTED_CLOUD")}
                   </ThemedText>
                 </View>
               )}
@@ -643,8 +807,7 @@ const PlugActivationDetailsView = ({
                 lineHeight: 20,
               }}
             >
-              تم تثبيت المشترك على شبكة المنزل بنجاح وتم ربطه بحسابك. يمكنك
-              الآن اختبار تشغيل وإيقاف المنافذ مباشرة أدناه:
+              {t("PLUG_ACTIVATION.ACTIVATION_SUCCESS_DESC")}
             </ThemedText>
 
             {/* Live Outlet Buttons Preview */}
@@ -663,7 +826,7 @@ const PlugActivationDetailsView = ({
                     color: isDark ? "#D1FAE5" : "#065F46",
                   }}
                 >
-                  اضغط لاختبار المنافذ:
+                  {t("PLUG_ACTIVATION.TEST_OUTLETS_LABEL")}
                 </ThemedText>
               </View>
 
@@ -694,7 +857,7 @@ const PlugActivationDetailsView = ({
                           : theme.textSecondary,
                       }}
                     >
-                      مخرج {outletNum}
+                      {t("PLUG_ACTIVATION.OUTLET_N", { num: outletNum })}
                     </ThemedText>
                     <ThemedText
                       style={{
@@ -706,7 +869,9 @@ const PlugActivationDetailsView = ({
                           : theme.textSecondary,
                       }}
                     >
-                      {testOutletStates[outletNum] ? "مفعل" : "معطل"}
+                      {testOutletStates[outletNum]
+                        ? t("PLUG_ACTIVATION.OUTLET_ACTIVE")
+                        : t("PLUG_ACTIVATION.OUTLET_INACTIVE")}
                     </ThemedText>
                   </TouchableOpacity>
                 ))}
@@ -741,7 +906,27 @@ const PlugActivationDetailsView = ({
               color: "#FFFFFF",
             }}
           >
-            بدء التفعيل والربط
+            {t("PLUG_ACTIVATION.START_ACTIVATION")}
+          </Button>
+        )}
+
+        {isHotspotNotFound && (
+          <Button
+            variant="contained"
+            fullWidth
+            borderRadius={9999}
+            onPress={retry}
+            style={{
+              minHeight: 52,
+              backgroundColor: theme.primary,
+            }}
+            textStyle={{
+              fontSize: 16,
+              fontWeight: "700",
+              color: "#FFFFFF",
+            }}
+          >
+            {t("PLUG_ACTIVATION.RETRY")}
           </Button>
         )}
 
@@ -761,7 +946,7 @@ const PlugActivationDetailsView = ({
               color: "#FFFFFF",
             }}
           >
-            إتمام والانتقال إلى قائمة المشتركات
+            {t("PLUG_ACTIVATION.COMPLETE_AND_GO_TO_PLUGS")}
           </Button>
         )}
 
@@ -784,7 +969,7 @@ const PlugActivationDetailsView = ({
             color: theme.textSecondary,
           }}
         >
-          {isSuccess ? "إغلاق" : "إلغاء"}
+          {isSuccess ? t("PLUG_ACTIVATION.CLOSE") : t("PLUG_ACTIVATION.CANCEL")}
         </Button>
       </View>
     </ScrollView>

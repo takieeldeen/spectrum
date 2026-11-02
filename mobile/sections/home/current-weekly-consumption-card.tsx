@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import React, { useMemo, useState } from "react";
 import ThemedText from "@/components/themed-text";
 import Svg, {
@@ -10,9 +10,12 @@ import Svg, {
   LinearGradient,
   Stop,
 } from "react-native-svg";
+import { Lucide } from "@react-native-vector-icons/lucide";
+
 import { useTheme } from "@/hooks/use-theme";
 import i18n from "@/i18n";
 import { usePlugs } from "@/providers/plug.provider";
+import { Fade } from "@/components/ui/fade";
 
 function getSmoothPath(
   points: { x: number; y: number }[],
@@ -86,11 +89,101 @@ function getSmoothPath(
   return d;
 }
 
+/* ==========================================================================
+   EMPTY STATE COMPONENT (For Current Weekly Graph)
+   ========================================================================== */
+
+export interface CurrentWeeklyEmptyViewProps {
+  theme: ReturnType<typeof useTheme>;
+}
+
+export const CurrentWeeklyEmptyView: React.FC<
+  CurrentWeeklyEmptyViewProps
+> = () => {
+  return (
+    <View
+      style={{
+        height: 150,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        paddingHorizontal: 16,
+      }}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: "rgba(255, 255, 255, 0.16)",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 2,
+        }}
+      >
+        <Lucide name="bar-chart-2" size={20} color="#FFFFFF" />
+      </View>
+      <ThemedText
+        weight="700"
+        style={{
+          fontSize: 14,
+          color: "#FFFFFF",
+          textAlign: "center",
+        }}
+      >
+        {i18n.t("DASHBOARD.NO_WEEKLY_DATA")}
+      </ThemedText>
+      <ThemedText
+        style={{
+          fontSize: 12,
+          color: "rgba(255, 255, 255, 0.75)",
+          textAlign: "center",
+          maxWidth: 260,
+          lineHeight: 16,
+        }}
+      >
+        {i18n.t("DASHBOARD.NO_WEEKLY_DATA_HINT")}
+      </ThemedText>
+    </View>
+  );
+};
+
+/* ==========================================================================
+   MAIN CURRENT WEEKLY CONSUMPTION COMPONENT
+   ========================================================================== */
+
 const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
   const { liveData } = usePlugs();
   const theme = useTheme();
   const [graphWidth, setGraphWidth] = useState<number>(0);
   const [graphHeight, setGraphHeight] = useState<number>(0);
+
+  // ------- Raw data array -------
+  const raw = useMemo(() => {
+    const d = data?.data ?? data;
+    return Array.isArray(d) ? d : [];
+  }, [data]);
+
+  // ------- Empty check (empty array or all empty objects) -------
+  const isEmpty = useMemo(() => {
+    if (raw.length === 0) return true;
+    return raw.every((item: any) => {
+      if (!item || typeof item !== "object") return true;
+      const keys = Object.keys(item);
+      if (keys.length === 0) return true;
+      const isZeroPlaceholder =
+        typeof item._id === "string" && item._id.startsWith("zeroObject");
+      const hasZeroConsumption =
+        Number(item.kwh ?? 0) === 0 && Number(item.cumulativeKwh ?? 0) === 0;
+      return (
+        keys.length === 0 ||
+        (isZeroPlaceholder && hasZeroConsumption) ||
+        keys.every(
+          (k) => item[k] === 0 || item[k] === undefined || item[k] === null,
+        )
+      );
+    });
+  }, [raw]);
 
   // ------- Live cumulative energy from all outlets -------
   const totalCumulativeKwh = useMemo(() => {
@@ -100,19 +193,11 @@ const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
   }, [liveData]);
 
   // ------- Build 7-point array (today + 6 days before) -------
-  // dataArray from BE is sorted newest-first:
-  //   [day_today, day_-1, ..., day_-6]  (7 items)
-  //
-  // We want:
-  //   [now_live, day_0, day_-1, ..., day_-5]  (7 items total)
-  //
-  // nowWh = (live cumulative) - (cumulativeKwh of the most-recent daily metric)
   const chartData = useMemo(() => {
-    const raw = Array.isArray(data) ? data : [];
-    // Most recent historical record (index 0 = newest from BE)
+    if (isEmpty) return [];
+
     const latestMetric = raw[0];
     const lastCumulativeKwh: number = latestMetric?.cumulativeKwh ?? 0;
-    console.log(totalCumulativeKwh, lastCumulativeKwh);
     const nowWh = Math.max(
       0,
       Math.round((totalCumulativeKwh - lastCumulativeKwh) * 1000),
@@ -125,10 +210,12 @@ const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
 
     // Newest-first: [now, day_0, day_-1, ..., day_-5]
     return [nowPoint, ...historical];
-  }, [data, totalCumulativeKwh]);
+  }, [raw, isEmpty, totalCumulativeKwh]);
 
   // ------- Labels (7 items, newest-first: today + 6 days before) -------
   const labels = useMemo(() => {
+    if (isEmpty) return [];
+
     const nowLabel = i18n.t("DASHBOARD.NOW");
     const dayKeys = [
       "DASHBOARD.DAYS.SUN",
@@ -151,12 +238,9 @@ const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
       if (i === 0) return nowLabel;
       return getOffsetDay(i);
     });
-  }, [chartData]);
+  }, [chartData, isEmpty]);
 
   // ------- Localize order for RTL/LTR -------
-  // For Arabic (RTL): newest on the right → keep newest-first order as-is
-  //   displayed right-to-left: now is rightmost ✓
-  // For English (LTR): reverse so oldest is on the left, now is rightmost ✓
   const localizedArray = useMemo(() => {
     return i18n.language === "ar" ? chartData : [...chartData].reverse();
   }, [chartData]);
@@ -208,89 +292,98 @@ const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
 
   return (
     <View style={{ height: 150 }}>
-      <View
-        style={{ flex: 1 }}
-        onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          setGraphWidth(width);
-          setGraphHeight(height);
-        }}
-      >
-        <Svg height={graphHeight} width={graphWidth}>
-          <Defs>
-            <LinearGradient
-              id="weeklyConsumptionGradient"
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
+      {/* 1. Empty State View with Fade */}
+      <Fade in={isEmpty} duration={250} unmountOnExit>
+        <CurrentWeeklyEmptyView theme={theme} />
+      </Fade>
+
+      {/* 2. Loaded Graph with Fade */}
+      <Fade in={!isEmpty} duration={250} unmountOnExit style={{ flex: 1 }}>
+        <View
+          style={{ flex: 1 }}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setGraphWidth(width);
+            setGraphHeight(height);
+          }}
+        >
+          <Svg height={graphHeight} width={graphWidth}>
+            <Defs>
+              <LinearGradient
+                id="weeklyConsumptionGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.28" />
+                <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.02" />
+              </LinearGradient>
+            </Defs>
+            {areaD ? (
+              <Path d={areaD} fill="url(#weeklyConsumptionGradient)" />
+            ) : null}
+            <Line
+              x1={0}
+              x2={graphWidth}
+              y1={baselineY}
+              y2={baselineY}
+              stroke="#ffffff30"
+              strokeWidth="1.5"
+            />
+            {pathD ? (
+              <Path d={pathD} fill="none" stroke="white" strokeWidth={2} />
+            ) : null}
+            {relativeGeometry.map(
+              (
+                point: { x: number; y: number; wh: number; isNow: boolean },
+                index: number,
+              ) => (
+                <React.Fragment key={`point-${index}`}>
+                  <Circle
+                    cx={point.x}
+                    cy={point.y}
+                    r={point.isNow ? 5 : 3.5}
+                    fill={point.isNow ? "#ffffff50" : "#ffffff20"}
+                    stroke={point.isNow ? "#ffffffb0" : "#ffffff20"}
+                    strokeWidth={point.isNow ? 2 : 1.5}
+                  />
+                  <SvgText
+                    x={point.x}
+                    y={point.y - 8}
+                    fill="white"
+                    fontSize="9"
+                    textAnchor="middle"
+                  >
+                    {point.wh}
+                  </SvgText>
+                </React.Fragment>
+              ),
+            )}
+          </Svg>
+        </View>
+        <View
+          style={{
+            flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+            justifyContent: "space-between",
+            paddingHorizontal: PADDING_HORIZONTAL,
+          }}
+        >
+          {localizedLabels.map((label, i) => (
+            <ThemedText
+              key={`label-${i}`}
+              style={{
+                fontSize: 9,
+                color: "#FFFFFF",
+                opacity: label === i18n.t("DASHBOARD.NOW") ? 1 : 0.7,
+                fontWeight: label === i18n.t("DASHBOARD.NOW") ? "700" : "400",
+              }}
             >
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.28" />
-              <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.02" />
-            </LinearGradient>
-          </Defs>
-          {areaD ? (
-            <Path d={areaD} fill="url(#weeklyConsumptionGradient)" />
-          ) : null}
-          <Line
-            x1={0}
-            x2={graphWidth}
-            y1={baselineY}
-            y2={baselineY}
-            stroke="#ffffff30"
-            strokeWidth="1.5"
-          />
-          {pathD ? (
-            <Path d={pathD} fill="none" stroke="white" strokeWidth={2} />
-          ) : null}
-          {relativeGeometry.map(
-            (
-              point: { x: number; y: number; wh: number; isNow: boolean },
-              index: number,
-            ) => (
-              <React.Fragment key={`point-${index}`}>
-                <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={point.isNow ? 5 : 3.5}
-                  fill={point.isNow ? "#ffffff50" : "#ffffff20"}
-                  stroke={point.isNow ? "#ffffffb0" : "#ffffff20"}
-                  strokeWidth={point.isNow ? 2 : 1.5}
-                />
-                <SvgText
-                  x={point.x}
-                  y={point.y - 8}
-                  fill="white"
-                  fontSize="9"
-                  textAnchor="middle"
-                >
-                  {point.wh}
-                </SvgText>
-              </React.Fragment>
-            ),
-          )}
-        </Svg>
-      </View>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          paddingHorizontal: PADDING_HORIZONTAL,
-        }}
-      >
-        {localizedLabels.map((label, i) => (
-          <ThemedText
-            key={`label-${i}`}
-            style={{
-              fontSize: 9,
-              opacity: label === i18n.t("DASHBOARD.NOW") ? 1 : 0.7,
-              fontWeight: label === i18n.t("DASHBOARD.NOW") ? "700" : "400",
-            }}
-          >
-            {label}
-          </ThemedText>
-        ))}
-      </View>
+              {label}
+            </ThemedText>
+          ))}
+        </View>
+      </Fade>
     </View>
   );
 };

@@ -1,4 +1,3 @@
-import React from "react";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
@@ -13,16 +12,16 @@ import MasterPowerCard from "../master-power-card";
 const HomeMainView = () => {
   const { liveData } = usePlugs();
   const allStrips = Object.values(liveData ?? {});
-  const [allOutlets] = allStrips
-    .map((strip) => Object.values(strip.outlets))
-    ?.map((o) => o);
-  const activeOutlets = allOutlets?.filter((outlet) => outlet.on);
-  const totalPower = allOutlets?.reduce(
-    (acc, outlet) => acc + outlet.power_W,
+  const allOutlets = allStrips.flatMap((strip) =>
+    Object.values(strip.outlets || {}),
+  );
+  const activeOutlets = allOutlets.filter((outlet) => outlet.on);
+  const totalPower = allOutlets.reduce(
+    (acc, outlet) => acc + (outlet.power_W || 0),
     0,
   );
-  const totalEnergy = allOutlets?.reduce(
-    (acc, outlet) => acc + outlet.energy_kwh,
+  const totalEnergy = allOutlets.reduce(
+    (acc, outlet) => acc + (outlet.energy_kwh || 0),
     0,
   );
 

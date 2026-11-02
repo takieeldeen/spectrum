@@ -66,11 +66,21 @@ export function ThemedText({
 
   const writingDirection: TextStyle["writingDirection"] = isArabic ? "rtl" : "ltr";
 
+  // If a custom fontSize is provided without a custom lineHeight, prevent baseTypeStyle.lineHeight
+  // (e.g. 24) from clamping larger fonts and clipping tall glyphs/diacritics in Arabic (Cairo)
+  const effectiveFontSize = fontSize ?? flattened.fontSize;
+  const hasCustomLineHeight = flattened.lineHeight !== undefined;
+  const dynamicLineHeightStyle: TextStyle =
+    effectiveFontSize && !hasCustomLineHeight
+      ? { lineHeight: Math.round(Number(effectiveFontSize) * (isArabic ? 1.45 : 1.35)) }
+      : {};
+
   const resolvedStyle: TextStyle = StyleSheet.flatten([
     { color: theme[themeColor ?? "text"] },
     baseTypeStyle,
     style,
     fontSize !== undefined && { fontSize },
+    dynamicLineHeightStyle,
     fontStyle,
     { writingDirection },
   ]) || {};
