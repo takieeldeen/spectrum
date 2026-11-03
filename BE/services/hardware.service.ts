@@ -6,7 +6,6 @@ class HardwareService extends EventEmitter {
   private serialBySocket = new Map<net.Socket, string>();
   private plugIdsBySerial = new Map<string, Set<string>>();
   private serialByPlugId = new Map<string, string>();
-  private serialByIp = new Map<string, string>();
   private pendingCommandsBySerial = new Map<string, string[]>();
   private voltageBySocket = new Map<net.Socket, number>();
   private connectedSockets = new Set<net.Socket>();
@@ -49,7 +48,6 @@ class HardwareService extends EventEmitter {
 
     const clientIp = socket.remoteAddress?.replace(/^.*:/, "");
     if (clientIp) {
-      this.serialByIp.set(clientIp, cleanSerial);
       // Persist IP address to database so reconnected sockets can be identified immediately
       import("../models/plug.model")
         .then(({ default: PlugModel }) => {
@@ -101,10 +99,6 @@ class HardwareService extends EventEmitter {
           }
           this.plugIdsBySerial.get(clean)!.add(pId);
           this.serialByPlugId.set(pId, clean);
-
-          if (plug.ipAddress) {
-            this.serialByIp.set(plug.ipAddress, clean);
-          }
         }
       }
       console.log(
@@ -114,18 +108,9 @@ class HardwareService extends EventEmitter {
       // Check if any sockets connected before DB was ready
       for (const sock of this.connectedSockets) {
         if (!sock.destroyed && !this.serialBySocket.has(sock)) {
-          const clientIp = sock.remoteAddress?.replace(/^.*:/, "");
-          if (clientIp && this.serialByIp.has(clientIp)) {
-            const clean = this.serialByIp.get(clientIp)!;
-            console.log(
-              `⚡ Post-preload identified strip by IP ${clientIp} -> serial [${clean}]`,
-            );
-            this.bindSocketToSerial(sock, clean);
-          } else {
-            sock.write("up:bootinfo\r\n");
-            sock.write("up:getinfo:all\r\n");
-            sock.write("up:power_report:2:vol\r\n");
-          }
+          sock.write("up:bootinfo\r\n");
+          sock.write("up:getinfo:all\r\n");
+          sock.write("up:power_report:2:vol\r\n");
         }
       }
     } catch (err) {
@@ -264,22 +249,11 @@ class HardwareService extends EventEmitter {
       console.log(`\n⚡ Strip connected to server from ${clientIp}!`);
       this.connectedSockets.add(socket);
 
-      // Check if IP is already known
-      if (clientIp && this.serialByIp.has(clientIp)) {
-        const knownSerial = this.serialByIp.get(clientIp)!;
-        console.log(
-          `⚡ Auto-identified strip by known IP ${clientIp} -> serial [${knownSerial}]`,
-        );
-        this.bindSocketToSerial(socket, knownSerial);
-      } else {
-        // Ask unidentified socket for bootinfo immediately so it identifies its serial
-        console.log(
-          `🔍 Unidentified strip connected from ${clientIp}. Requesting up:bootinfo...`,
-        );
-        socket.write("up:bootinfo\r\n");
-      }
-
-      // Ask the strip for getinfo and voltage immediately
+      // Always request bootinfo so the strip uniquely identifies its serial
+      console.log(
+        `🔍 Strip connected from ${clientIp}. Requesting up:bootinfo...`,
+      );
+      socket.write("up:bootinfo\r\n");
       socket.write("up:getinfo:all\r\n");
       socket.write("up:power_report:2:vol\r\n");
 
@@ -319,21 +293,6 @@ class HardwareService extends EventEmitter {
             );
             this.bindSocketToSerial(socket, detectedSerial);
           }
-        }
-
-        // Check DB for matching IP if still unidentified
-        if (!detectedSerial && clientIp) {
-          try {
-            const PlugModel = (await import("../models/plug.model")).default;
-            const plugByIp = await PlugModel.findOne({ ipAddress: clientIp });
-            if (plugByIp && plugByIp.serialNumber) {
-              detectedSerial = this.normalizeSerial(plugByIp.serialNumber);
-              console.log(
-                `⚡ Identified strip by DB IP match: ${clientIp} -> serial [${detectedSerial}]`,
-              );
-              this.bindSocketToSerial(socket, detectedSerial);
-            }
-          } catch (_) {}
         }
 
         // As soon as serial is known, mark data received timestamp so verify endpoint succeeds
