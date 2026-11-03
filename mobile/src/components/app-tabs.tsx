@@ -129,7 +129,6 @@ export default function AppTabs() {
         ),
       }}
     >
-      <Tabs.Screen name="explore" options={{ href: null }} />
       {shouldReverseOrder ? [...tabScreens].reverse() : tabScreens}
     </Tabs>
   );

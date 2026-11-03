@@ -33,9 +33,6 @@ export default function AppTabs() {
           <TabTrigger name="devices" href="/devices" asChild>
             <TabButton>{t("NAVBAR.DEVICES")}</TabButton>
           </TabTrigger>
-          <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>{t("NAVBAR.EXPLORE")}</TabButton>
-          </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton>{t("NAVBAR.PROFILE")}</TabButton>
           </TabTrigger>
