@@ -1,7 +1,7 @@
-// export const DEFAULT_SERVER_HOST = "13.62.76.178"; // CLOUD SERVER
-// export const DEFAULT_SERVER_PORT = 80;
-export const DEFAULT_SERVER_HOST = "192.168.1.9"; // LOCAL SERVER
-export const DEFAULT_SERVER_PORT = 8080;
+export const DEFAULT_SERVER_HOST = "13.62.76.178"; // CLOUD SERVER
+export const DEFAULT_SERVER_PORT = 80;
+// export const DEFAULT_SERVER_HOST = "192.168.1.9"; // LOCAL SERVER
+// export const DEFAULT_SERVER_PORT = 8080;
 
 export const API_BASE_URL = `http://${DEFAULT_SERVER_HOST}:${DEFAULT_SERVER_PORT}/api`;
 export const SOCKET_URL = `http://${DEFAULT_SERVER_HOST}:${DEFAULT_SERVER_PORT}`;

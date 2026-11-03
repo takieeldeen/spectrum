@@ -207,7 +207,7 @@ export function useActivateStrip() {
       setCurrentStep("VERIFYING_CONNECTION");
       setStatusMessage(t("PLUG_ACTIVATION.STATUS_VERIFYING_CONNECTION"));
 
-      const VERIFICATION_TIMEOUT_MS = 45000;
+      const VERIFICATION_TIMEOUT_MS = 65000;
       const POLL_INTERVAL_MS = 2000;
       const start = Date.now();
       let verified = false;
@@ -221,7 +221,7 @@ export function useActivateStrip() {
         if (params.plugId) {
           try {
             const v = await verifyPlugConnection(params.plugId);
-            if (v?.dataReceived) {
+            if (v?.connected || v?.dataReceived) {
               verified = true;
               if (v.ipAddress) setActivatedStripIp(v.ipAddress);
               break;
@@ -600,7 +600,7 @@ export function useActivateStrip() {
       setCurrentStep("VERIFYING_CONNECTION");
       setStatusMessage(t("PLUG_ACTIVATION.STATUS_VERIFYING_CONNECTION"));
 
-      const VERIFICATION_TIMEOUT_MS = 45000;
+      const VERIFICATION_TIMEOUT_MS = 65000;
       const POLL_INTERVAL_MS = 2000;
       const verificationStartTime = Date.now();
       let verified = false;
@@ -615,7 +615,7 @@ export function useActivateStrip() {
         if (params.plugId) {
           try {
             const verification = await verifyPlugConnection(params.plugId);
-            if (verification?.dataReceived) {
+            if (verification?.connected || verification?.dataReceived) {
               verified = true;
               if (verification.ipAddress) {
                 setActivatedStripIp(verification.ipAddress);
