@@ -1,5 +1,6 @@
 import DeviceModel from '../models/device.model';
 import PlugModel from '../models/plug.model';
+import OwnershipModel from '../models/ownership.model';
 import notificationService from './notification.service';
 
 /** Allowed preset durations (minutes). 1 minute is for testing purposes only */
@@ -203,7 +204,10 @@ export class TimerService {
   ): Promise<void> {
     try {
       const plug = await PlugModel.findById(plugId).lean();
-      if (!plug?.user) return;
+      if (!plug) return;
+
+      const ownerships = await OwnershipModel.find({ plug: plugId }).select("user");
+      if (!ownerships.length) return;
 
       const device = await DeviceModel.findById(deviceId).lean();
       const deviceName = device?.name || 'Device';
@@ -215,22 +219,25 @@ export class TimerService {
         message = `${deviceName} was offline when sleep timer fired`;
       }
 
-      await notificationService.createNotification({
-        userId: plug.user.toString(),
-        type: 'DEVICE',
-        entityType: 'DEVICE',
-        entityId: deviceId,
-        data: {
-          event: 'SLEEP_TIMER',
-          outcome,
-          deviceName,
-          title: 'Sleep Timer',
-          message,
-          plugId,
-          plugName: plug.name,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      for (const owner of ownerships) {
+        if (!owner.user) continue;
+        await notificationService.createNotification({
+          userId: owner.user.toString(),
+          type: 'DEVICE',
+          entityType: 'DEVICE',
+          entityId: deviceId,
+          data: {
+            event: 'SLEEP_TIMER',
+            outcome,
+            deviceName,
+            title: 'Sleep Timer',
+            message,
+            plugId,
+            plugName: plug.name,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
     } catch (err) {
       console.error('TimerService: failed to send notification:', err);
     }

@@ -9,6 +9,7 @@ import {
   I18nManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
@@ -31,6 +32,7 @@ export function PlugsListView({ initialPlugs }: { initialPlugs?: IPlug[] }) {
   const { i18n } = useTranslation();
   const isArabic = (i18n.language || "ar").startsWith("ar");
   const isRtl = I18nManager.isRTL || isArabic;
+  const directionStyle = useDirectionStyle();
 
   const {
     data: plugsData,
@@ -67,7 +69,7 @@ export function PlugsListView({ initialPlugs }: { initialPlugs?: IPlug[] }) {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+      <SafeAreaView style={[styles.safeArea, directionStyle]} edges={["left", "right"]}>
         <FlatList
           data={plugs}
           keyExtractor={(item) => item._id!}

@@ -12,6 +12,7 @@ import { Lucide } from "@react-native-vector-icons/lucide";
 
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
+import i18n from "@/i18n";
 
 /* ==========================================================================
    1. TYPES & PROPS
@@ -351,9 +352,10 @@ export function Stepper({
   }, [steps]);
 
   // Determine direction
+  const isArabic = (i18n.language || "ar").startsWith("ar");
   const isRTL =
     direction === "rtl" ||
-    (direction === "auto" && I18nManager.isRTL);
+    (direction === "auto" && (I18nManager.isRTL || isArabic));
 
   // Colors resolution
   const resolvedActiveColor = activeColor ?? theme.primary;
@@ -390,7 +392,7 @@ export function Stepper({
         }}
         style={[
           styles.container,
-          { flexDirection: isRTL ? "row-reverse" : "row" },
+          { flexDirection: "row" },
           style,
         ]}
       >
@@ -620,7 +622,7 @@ export function Stepper({
             key={index}
             style={[
               styles.verticalStepRow,
-              { flexDirection: isRTL ? "row-reverse" : "row" },
+              { flexDirection: "row" },
             ]}
           >
             {/* Left Track with Circle and Vertical Dashed Connector */}

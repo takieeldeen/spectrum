@@ -475,7 +475,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) => {
       width: "100%",
     },
     headerRow: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 4,
@@ -487,7 +487,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) => {
       color: theme.text,
     },
     seeAllButton: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 3,
       paddingVertical: 4,

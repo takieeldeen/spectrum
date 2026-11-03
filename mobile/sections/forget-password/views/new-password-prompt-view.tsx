@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -39,6 +40,7 @@ export function NewPasswordPromptView() {
   const snackbar = useSnackbar();
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
+  const directionStyle = useDirectionStyle();
 
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -124,7 +126,7 @@ export function NewPasswordPromptView() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       {/* Decorative Brand Circles in Background */}
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />
@@ -177,7 +179,6 @@ export function NewPasswordPromptView() {
                   <View
                     style={[
                       styles.inputWrapper,
-                      isRtl && styles.inputWrapperRtl,
                       errors.newPassword && styles.inputError,
                     ]}
                   >
@@ -238,7 +239,6 @@ export function NewPasswordPromptView() {
                   <View
                     style={[
                       styles.inputWrapper,
-                      isRtl && styles.inputWrapperRtl,
                       errors.confirmPassword && styles.inputError,
                     ]}
                   >

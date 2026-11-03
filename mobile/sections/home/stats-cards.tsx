@@ -120,13 +120,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
     [isDark],
   );
 
-  const rowDir = isArabic
-    ? I18nManager.isRTL
-      ? "row"
-      : "row-reverse"
-    : I18nManager.isRTL
-      ? "row-reverse"
-      : "row";
+  const rowDir = "row";
 
   const rowStyle: ViewStyle = {
     flexDirection: rowDir,
@@ -356,7 +350,7 @@ const createStyles = (
       }),
     },
     textContainer: {
-      alignItems: i18n.language === "en" ? "flex-start" : "flex-end",
+      // alignItems: i18n.language === "en" ? "flex-start" : "flex-end",
       justifyContent: "center",
       flex: 1,
     },
@@ -365,26 +359,26 @@ const createStyles = (
       fontWeight: "600",
       color: theme.textSecondary,
       marginBottom: 3,
-      textAlign: isRtl ? "right" : "left",
+      // textAlign: isRtl ? "right" : "left",
     },
     cardValue: {
       fontSize: 22,
       fontWeight: "800",
       color: theme.text,
       lineHeight: 28,
-      textAlign: isRtl ? "right" : "left",
+      // textAlign: isRtl ? "right" : "left",
     },
     cardUnit: {
       fontSize: 11,
       fontWeight: "500",
       color: theme.textSecondary,
       marginTop: 2,
-      textAlign: isRtl ? "right" : "left",
+      // textAlign: isRtl ? "right" : "left",
     },
     iconContainer: {
       alignItems: "center",
       justifyContent: "center",
-      marginStart: i18n.language === "en" ? 8 : 0,
+      // marginStart: i18n.language === "en" ? 8 : 0,
     },
     iconCircle: {
       width: 44,

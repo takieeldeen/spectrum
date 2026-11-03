@@ -43,6 +43,8 @@ export interface IPlug {
   name: string;
   nameEn?: string;
   serialNumber: string;
+  SSID?: string;
+  wifiPassword?: string;
   ipAddress?: string;
   roomId?: string;
   connected?: boolean;
@@ -130,7 +132,7 @@ export function PlugCard({
 
   const plugId = plug?._id || plug?.id;
 
-  const handleActivate = () => {
+  const handleRefreshActivation = () => {
     popover.onClose();
     if (onActivate && plug) {
       onActivate(plug);
@@ -142,6 +144,9 @@ export function PlugCard({
         params: {
           plugId,
           serialNumber: plug?.serialNumber,
+          ssid: plug?.SSID,
+          password: plug?.wifiPassword,
+          skipToVerify: "true",
         },
       } as any);
     }
@@ -556,9 +561,9 @@ export function PlugCard({
       <Popover {...popover} placement="bottom-end">
         <Popover.Item
           icon={<Lucide name="zap" size={18} color={theme.text} />}
-          onPress={handleActivate}
+          onPress={handleRefreshActivation}
         >
-          {t("ACTIVATE")}
+          {t("REFRESH_ACTIVATION")}
         </Popover.Item>
         <Popover.Item
           icon={<Lucide name="pencil" size={18} color={theme.text} />}

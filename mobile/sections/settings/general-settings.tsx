@@ -158,7 +158,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 12,
       paddingHorizontal: 4,
       color: theme.text,
-      textAlign: i18n.language === "en" ? "left" : "right",
+      // textAlign: i18n.language === "en" ? "left" : "right",
     },
     card: {
       backgroundColor: theme.cardBackground,
@@ -179,13 +179,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       }),
     },
     row: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingVertical: 14,
     },
     rowStart: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 12,
       flex: 1,
@@ -207,7 +207,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.text,
     },
     rowEnd: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
     },

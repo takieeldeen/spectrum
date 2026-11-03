@@ -72,8 +72,6 @@
       [
         "expo-localization",
         {
-          "supportsRTL": true,
-          "forcesRTL": false,
           "supportedLocales": ["en", "ar"]
         }
       ],

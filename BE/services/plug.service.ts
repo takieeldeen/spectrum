@@ -1,19 +1,41 @@
 import PlugModel from "../models/plug.model";
 import { IPlug } from "../types/plug.type";
-
+import OwnershipModel from "../models/ownership.model";
 import DeviceModel from "../models/device.model";
 import mongoose from "mongoose";
+import ownershipService from "./ownership.service";
 
 export class PlugService {
   /**
-   * Creates a new Plug entity in the database
-   * @param data The plug data to be inserted
-   * @returns The created plug entity
+   * Creates or joins a Plug entity and assigns user ownership
+   * @param data The plug data to be inserted or updated
+   * @param userId The user ID creating or joining the plug
+   * @returns The plug entity
    */
-  async createPlug(data: Partial<IPlug>): Promise<IPlug> {
-    const plug = await PlugModel.create(data);
-    // Register immediately in HardwareService in-memory map so the strip
-    // is routable the moment it connects (without waiting for a DB lookup).
+  async createPlug(data: Partial<IPlug>, userId?: string): Promise<IPlug> {
+    let plug: IPlug | null = null;
+    if (data.serialNumber) {
+      plug = await PlugModel.findOne({ serialNumber: data.serialNumber });
+    }
+
+    if (!plug) {
+      plug = await PlugModel.create(data);
+    } else {
+      if (data.name) plug.name = data.name;
+      if (data.SSID) plug.SSID = data.SSID;
+      if (data.wifiPassword) plug.wifiPassword = data.wifiPassword;
+      if (data.roomId) plug.roomId = data.roomId;
+      if (data.ipAddress) plug.ipAddress = data.ipAddress;
+      await plug.save();
+    }
+
+    if (userId) {
+      try {
+        await ownershipService.addOwnership(userId, plug._id.toString());
+      } catch (_) {}
+    }
+
+    // Register immediately in HardwareService in-memory map
     if (plug.serialNumber) {
       try {
         const { default: hardwareService } = await import("./hardware.service");
@@ -24,7 +46,7 @@ export class PlugService {
   }
 
   /**
-   * Updates an existing Plug entity belonging to the user
+   * Updates an existing Plug entity if the user has ownership
    * @param id The ID of the plug
    * @param data The updated data
    * @param userId Optional user ID to ensure ownership
@@ -35,23 +57,41 @@ export class PlugService {
     data: Partial<IPlug>,
     userId?: string,
   ): Promise<IPlug | null> {
-    const filter: Record<string, any> = { _id: id };
     if (userId) {
-      filter.user = userId;
+      const hasAccess = await ownershipService.hasOwnership(userId, id);
+      if (!hasAccess) {
+        return null;
+      }
     }
-    return await PlugModel.findOneAndUpdate(filter, data, { new: true });
+    return await PlugModel.findByIdAndUpdate(id, data, { new: true });
   }
 
   /**
-   * Deletes a plug entity and unassigns all associated devices
+   * Deletes ownership for the specified user, and removes the plug if no owners remain
    */
   async deletePlug(id: string, userId?: string): Promise<boolean> {
-    const filter: Record<string, any> = { _id: id };
     if (userId) {
-      filter.user = userId;
+      const hasAccess = await ownershipService.hasOwnership(userId, id);
+      if (!hasAccess) return false;
+
+      await ownershipService.removeOwnership(userId, id);
+
+      const remainingOwners = await OwnershipModel.countDocuments({
+        plug: new mongoose.Types.ObjectId(id),
+      });
+
+      if (remainingOwners === 0) {
+        await this.unassignAllDevicesForPlug(id);
+        const result = await PlugModel.findByIdAndDelete(id);
+        return Boolean(result);
+      }
+      return true;
     }
+
+    // System-wide deletion
+    await OwnershipModel.deleteMany({ plug: new mongoose.Types.ObjectId(id) });
     await this.unassignAllDevicesForPlug(id);
-    const result = await PlugModel.findOneAndDelete(filter);
+    const result = await PlugModel.findByIdAndDelete(id);
     return Boolean(result);
   }
 
@@ -71,16 +111,16 @@ export class PlugService {
   async assignDevicesToPlug(
     plugId: string,
     devices: Record<number, string | null | undefined>,
+    userId?: string,
   ): Promise<void> {
-    const plug = await PlugModel.findById(plugId);
     for (const [portStr, deviceId] of Object.entries(devices)) {
       if (deviceId) {
         const updateData: Record<string, any> = {
           plugId: plugId,
           plugPort: parseInt(portStr, 10),
         };
-        if (plug?.user) {
-          updateData.user = plug.user;
+        if (userId) {
+          updateData.user = userId;
         }
         await DeviceModel.findByIdAndUpdate(deviceId, updateData);
       }
@@ -88,16 +128,16 @@ export class PlugService {
   }
 
   /**
-   * Retrieves all Plug entities for a given user from the database
+   * Retrieves all Plug entities for a given user via OwnershipModel
    * @param userId Optional user ID to filter plugs
    * @returns Array of plug entities
    */
   async getAllPlugs(userId?: string): Promise<IPlug[]> {
-    const filter: Record<string, any> = {};
-    if (userId) {
-      filter.user = userId;
+    if (!userId) {
+      return await PlugModel.find();
     }
-    return await PlugModel.find(filter);
+    const plugIds = await ownershipService.getUserPlugIds(userId);
+    return await PlugModel.find({ _id: { $in: plugIds } });
   }
 
   /**
@@ -107,11 +147,13 @@ export class PlugService {
    * @returns The plug entity or null if not found
    */
   async getPlugById(id: string, userId?: string): Promise<IPlug | null> {
-    const filter: Record<string, any> = { _id: id };
     if (userId) {
-      filter.user = userId;
+      const hasAccess = await ownershipService.hasOwnership(userId, id);
+      if (!hasAccess) {
+        return null;
+      }
     }
-    return await PlugModel.findOne(filter);
+    return await PlugModel.findById(id);
   }
 
   /**
@@ -184,13 +226,9 @@ export class PlugService {
       message: `Outlet ${outlet} successfully turned ${normalizedState}`,
     };
   }
-  static async ownPlug(plugId: string, userId: string) {
-    console.log(plugId, userId);
-    const exists = await PlugModel.exists({
-      _id: new mongoose.Types.ObjectId(plugId),
-      user: new mongoose.Types.ObjectId(userId),
-    });
-    return !!exists;
+
+  static async ownPlug(plugId: string, userId: string): Promise<boolean> {
+    return await ownershipService.hasOwnership(userId, plugId);
   }
 }
 

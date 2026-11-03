@@ -1,6 +1,7 @@
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import RecentDevices from "../recent-device";
 import { usePlugs } from "@/providers/plug.provider";
 import CurrentConsumptionCard from "../current-consumption-card";
@@ -26,11 +27,13 @@ const HomeMainView = () => {
   );
 
   const theme = useTheme();
+  const directionStyle = useDirectionStyle();
 
   return (
     <SafeAreaView
       edges={["top"]}
       style={{
+        ...directionStyle,
         paddingVertical: 12,
         gap: 12,
         backgroundColor: theme.background,

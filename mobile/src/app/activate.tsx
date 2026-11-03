@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Lucide from "@react-native-vector-icons/lucide";
@@ -29,6 +30,7 @@ export default function ActivateScreen() {
   const params = useLocalSearchParams<{ token?: string; email?: string }>();
   const { t } = useTranslation();
   const snackbar = useSnackbar();
+  const directionStyle = useDirectionStyle();
   const { login } = useAuth();
 
   const token = params.token?.trim() || "";
@@ -110,7 +112,7 @@ export default function ActivateScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />
 

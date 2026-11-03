@@ -18,7 +18,7 @@ import {
   getStoredLanguage,
 } from "@/utils/storage";
 import { getMe } from "@/api/auth";
-import i18n from "@/i18n";
+import i18n, { changeAppLanguage } from "@/i18n";
 
 export function applyTheme(themeMode?: UserTheme | null) {
   if (!themeMode) return;
@@ -31,9 +31,12 @@ export function applyTheme(themeMode?: UserTheme | null) {
 
 export async function applyLanguage(lang?: UserLanguage | null) {
   if (!lang) return;
-  if (lang !== i18n.language) {
-    await i18n.changeLanguage(lang);
-  }
+  const normalized: "ar" | "en" = lang.startsWith("ar") ? "ar" : "en";
+  const current: "ar" | "en" = (i18n.language || "ar").startsWith("ar")
+    ? "ar"
+    : "en";
+  if (normalized === current) return;
+  await changeAppLanguage(normalized);
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

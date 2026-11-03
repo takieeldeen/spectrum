@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import WifiModel, { decryptPassword } from "../models/wifi.model";
-import { IWifi } from "../types/wifi.type";
+import { IWifi, IWifiResponse } from "../types/wifi.type";
 
 export class WifiService {
   /**
@@ -28,10 +28,21 @@ export class WifiService {
   }
 
   /**
-   * Retrieves all Wi-Fi networks for a user (without password)
+   * Retrieves all Wi-Fi networks for a user with decrypted password
    */
-  async getWifiList(userId: string): Promise<IWifi[]> {
-    return await WifiModel.find({ user: userId }).sort({ createdAt: -1 });
+  async getWifiList(userId: string): Promise<IWifiResponse[]> {
+    const list = await WifiModel.find({ user: userId })
+      .select("+password")
+      .sort({ createdAt: -1 });
+
+    return list.map((item) => ({
+      _id: item._id,
+      ssid: item.ssid,
+      username: item.ssid,
+      password: item.password ? decryptPassword(item.password) : "",
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
   }
 
   /**

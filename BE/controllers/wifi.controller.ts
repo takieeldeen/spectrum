@@ -31,6 +31,8 @@ export class WifiController {
         data: {
           _id: wifi._id,
           ssid: wifi.ssid,
+          username: wifi.ssid,
+          password: password,
           createdAt: wifi.createdAt,
           updatedAt: wifi.updatedAt,
         },
@@ -44,7 +46,7 @@ export class WifiController {
   };
 
   /**
-   * Returns list of saved Wi-Fi networks for user (excluding password)
+   * Returns list of saved Wi-Fi networks for user (including usernames and decrypted passwords)
    */
   getWifiList = async (req: Request, res: Response) => {
     try {

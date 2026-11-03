@@ -1,5 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import {
+  View,
+  StyleSheet,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
 import Lucide from "@react-native-vector-icons/lucide";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
@@ -10,7 +15,6 @@ import { useGetDayAnalytics, useGetMonthAnalytics } from "@/api";
 import { Fade } from "@/components/ui/fade";
 import CurrentDailyConsumptionCard from "./current-daily-consumption-card";
 import CurrentMonthlyConsumption from "./current-monthly-consumption-card";
-import i18n from "@/i18n";
 
 export interface CurrentConsumptionCardProps {
   totalPower?: number;
@@ -195,13 +199,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 16,
     },
     headerRow: {
-      flexDirection: i18n.language === "ar" ? "row" : "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       minHeight: 42,
     },
     liveBadge: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       backgroundColor: "rgba(255, 255, 255, 0.18)",
       paddingHorizontal: 12,
@@ -221,7 +225,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: "#34D399",
     },
     titleContainer: {
-      flexDirection: i18n.language === "ar" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
@@ -255,7 +259,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "600",
     },
     powerRow: {
-      flexDirection: i18n.language === "en" ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "baseline",
       gap: 8,
     },

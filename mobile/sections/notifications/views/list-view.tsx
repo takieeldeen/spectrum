@@ -246,7 +246,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       padding: 14,
       backgroundColor: theme.primaryDark,
       borderRadius: 16,
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 12,
     },

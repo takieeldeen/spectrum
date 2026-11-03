@@ -1,5 +1,7 @@
 import DeviceModel from '../models/device.model';
 import PlugModel from '../models/plug.model';
+import OwnershipModel from '../models/ownership.model';
+import ownershipService from './ownership.service';
 import { IDevice } from '../types/device.type';
 
 export class DeviceService {
@@ -16,9 +18,9 @@ export class DeviceService {
       );
     }
     if (!data.user && data.plugId) {
-      const plug = await PlugModel.findById(data.plugId);
-      if (plug?.user) {
-        data.user = plug.user as any;
+      const ownership = await OwnershipModel.findOne({ plug: data.plugId });
+      if (ownership?.user) {
+        data.user = ownership.user as any;
       }
     }
     const created = await DeviceModel.create(data);
@@ -36,8 +38,7 @@ export class DeviceService {
       return await DeviceModel.find({}).populate('plugId', 'name');
     }
 
-    const userPlugs = await PlugModel.find({ user: userId }).select('_id');
-    const userPlugIds = userPlugs.map((p) => p._id);
+    const userPlugIds = await ownershipService.getUserPlugIds(userId);
 
     return await DeviceModel.find({
       $or: [
@@ -62,8 +63,7 @@ export class DeviceService {
       return await DeviceModel.find({ plugId: null });
     }
 
-    const userPlugs = await PlugModel.find({ user: userId }).select('_id');
-    const userPlugIds = userPlugs.map((p) => p._id);
+    const userPlugIds = await ownershipService.getUserPlugIds(userId);
 
     const userFilter = {
       $or: [

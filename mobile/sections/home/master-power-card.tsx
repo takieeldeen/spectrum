@@ -217,13 +217,7 @@ const createStyles = (
   isArabic: boolean,
 ) => {
   const isDark = theme.isDark;
-  const naturalRow = isArabic
-    ? I18nManager.isRTL
-      ? "row"
-      : "row-reverse"
-    : I18nManager.isRTL
-      ? "row-reverse"
-      : "row";
+  const naturalRow = "row";
 
   return StyleSheet.create({
     cardContainer: {

@@ -112,7 +112,7 @@ export const FilterOptions = ({
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     container: {
-      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       paddingVertical: 4,

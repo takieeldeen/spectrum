@@ -1,6 +1,8 @@
 export interface IWifi {
   _id: string;
   ssid: string;
+  username?: string;
+  password?: string;
   name?: string;
   createdAt?: string;
   updatedAt?: string;

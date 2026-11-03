@@ -281,3 +281,63 @@ export async function getStoredTheme(): Promise<
 
   return null;
 }
+
+/**
+ * RTL Layout State Persistence
+ */
+const RTL_FLAG_KEY = "spectrum_last_forced_rtl_v2";
+const RTL_FLAG_FILE_NAME = "spectrum_last_forced_rtl_v2.txt";
+
+export async function saveLastForcedRtl(isRTL: boolean): Promise<void> {
+  const val = isRTL ? "true" : "false";
+  try {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(RTL_FLAG_KEY, val);
+      }
+      return;
+    }
+    if (SecureStore?.setItemAsync) {
+      try {
+        await SecureStore.setItemAsync(RTL_FLAG_KEY, val);
+        return;
+      } catch (_) {}
+    }
+    if (FileSystem.documentDirectory) {
+      const fileUri = `${FileSystem.documentDirectory}${RTL_FLAG_FILE_NAME}`;
+      await FileSystem.writeAsStringAsync(fileUri, val);
+    }
+  } catch (_) {}
+}
+
+export async function getLastForcedRtl(): Promise<boolean | null> {
+  try {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const val = window.localStorage.getItem(RTL_FLAG_KEY);
+        if (val === "true") return true;
+        if (val === "false") return false;
+      }
+      return null;
+    }
+    if (SecureStore?.getItemAsync) {
+      try {
+        const val = await SecureStore.getItemAsync(RTL_FLAG_KEY);
+        if (val === "true") return true;
+        if (val === "false") return false;
+      } catch (_) {}
+    }
+    if (FileSystem.documentDirectory) {
+      const fileUri = `${FileSystem.documentDirectory}${RTL_FLAG_FILE_NAME}`;
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(fileUri);
+        const trimmed = content?.trim();
+        if (trimmed === "true") return true;
+        if (trimmed === "false") return false;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+

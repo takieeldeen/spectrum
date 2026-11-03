@@ -28,6 +28,7 @@ const PlugActivationPage = () => {
     serialNumber?: string;
     ssid?: string;
     password?: string;
+    skipToVerify?: string;
   }>();
 
   const { data: plugData } = useGetPlugById(params.plugId);
@@ -50,6 +51,7 @@ const PlugActivationPage = () => {
     statusMessage,
     activate,
     retry,
+    retryVerificationOnly,
     notifyVerified,
   } = useActivateStrip();
 
@@ -59,6 +61,16 @@ const PlugActivationPage = () => {
     if (autoStartedRef.current) return;
     if (effectiveSerial && effectiveSsid) {
       autoStartedRef.current = true;
+      if (params.skipToVerify === "true") {
+        // Strip already joined home Wi-Fi — skip SoftAP scan, go straight to verify
+        retryVerificationOnly({
+          serialNumber: effectiveSerial,
+          homeSsid: effectiveSsid,
+          homePassword: effectivePassword,
+          plugId: effectivePlugId,
+        });
+        return;
+      }
       activate({
         serialNumber: effectiveSerial,
         homeSsid: effectiveSsid,
@@ -71,7 +83,9 @@ const PlugActivationPage = () => {
     effectiveSsid,
     effectivePassword,
     effectivePlugId,
+    params.skipToVerify,
     activate,
+    retryVerificationOnly,
   ]);
 
   useEffect(() => {

@@ -67,15 +67,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderRadius: 12,
     },
     upperPart: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
     },
 
     primaryInfoContainer: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       gap: 12,
-      marginRight: i18n.language === "en" ? "auto" : 0,
-      marginLeft: i18n.language === "ar" ? "auto" : 0,
+      marginEnd: "auto",
     },
 
     imageContainer: {

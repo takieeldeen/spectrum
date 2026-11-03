@@ -1,6 +1,7 @@
 import GuardModel from '../models/guard.model';
 import DeviceModel from '../models/device.model';
 import PlugModel from '../models/plug.model';
+import OwnershipModel from '../models/ownership.model';
 import notificationService from './notification.service';
 import { IGuard, GuardComparator, GuardTarget, GuardAction } from '../types/guard.type';
 
@@ -362,25 +363,29 @@ export class GuardService {
       // Persist notification and push real-time socket alert to user room
       try {
         const plug = await PlugModel.findById(plugId).lean();
-        if (plug && plug.user) {
-          await notificationService.createNotification({
-            userId: plug.user.toString(),
-            type: 'GUARD',
-            entityType: 'DEVICE',
-            entityId: device._id.toString(),
-            data: {
-              entityName: device.name,
-              plugId,
-              plugName: plug.name,
-              port,
-              action: guard.action,
-              target: guard.target,
-              comparator: guard.comparator,
-              threshold: guard.value,
-              actualValue: currentValue,
-              timestamp: new Date().toISOString(),
-            },
-          });
+        if (plug) {
+          const ownerships = await OwnershipModel.find({ plug: plugId }).select("user");
+          for (const owner of ownerships) {
+            if (!owner.user) continue;
+            await notificationService.createNotification({
+              userId: owner.user.toString(),
+              type: 'GUARD',
+              entityType: 'DEVICE',
+              entityId: device._id.toString(),
+              data: {
+                entityName: device.name,
+                plugId,
+                plugName: plug.name,
+                port,
+                action: guard.action,
+                target: guard.target,
+                comparator: guard.comparator,
+                threshold: guard.value,
+                actualValue: currentValue,
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
         }
       } catch (notifErr) {
         console.error('Failed to create guard notification:', notifErr);

@@ -358,7 +358,6 @@ export default function TabTwoScreen() {
 
         client.on("data", (data: any) => {
           const text = data.toString();
-          console.log(`[TCP] Received: ${text}`);
           received += text;
           clearTimeout(settleTimer);
           settleTimer = setTimeout(

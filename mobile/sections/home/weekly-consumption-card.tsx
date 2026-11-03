@@ -307,7 +307,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       }),
     },
     headerRow: {
-      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
     },
@@ -323,7 +323,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.textSecondary,
     },
     chartContainer: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "flex-end",
       height: 160,

@@ -67,11 +67,14 @@ export function initializeSocket(httpServer: HttpServer) {
     // When user opens the details page:
     socket.on("join_plug", async (plugId: string) => {
       const roomName = `plug_${plugId}`;
+      const userId = user?.id || user?._id?.toString();
 
-      // if (!(await PlugService.ownPlug(plugId, user.id))) {
-      //   console.error("You don't own this plug");
-      //   return;
-      // }
+      if (!userId || !(await PlugService.ownPlug(plugId, userId))) {
+        console.error(`User ${userId || "unknown"} does not have ownership of plug ${plugId}`);
+        socket.emit("error", { message: "You don't own this plug" });
+        return;
+      }
+
       // Put them in a dedicated Socket.io room for this plug
       if (!socket.rooms.has(roomName)) {
         socket.join(roomName);
@@ -118,7 +121,11 @@ export function initializeSocket(httpServer: HttpServer) {
 
     socket.on("toggle_all_plugs", async (data) => {
       const { plugId, newState } = data;
-      if (!(await PlugService.ownPlug(plugId, user.id))) return;
+      const userId = user?.id || user?._id?.toString();
+      if (!userId || !(await PlugService.ownPlug(plugId, userId))) {
+        console.error(`User ${userId || "unknown"} does not have ownership of plug ${plugId}`);
+        return;
+      }
 
       await Promise.all(
         [1, 2, 3, 4].map((outletNum) => {
@@ -135,7 +142,11 @@ export function initializeSocket(httpServer: HttpServer) {
       "order_plug",
       async (data: { plugId: string; command: string }) => {
         const { plugId, command } = data;
-        if (!(await PlugService.ownPlug(plugId, user.id))) return;
+        const userId = user?.id || user?._id?.toString();
+        if (!userId || !(await PlugService.ownPlug(plugId, userId))) {
+          console.error(`User ${userId || "unknown"} does not have ownership of plug ${plugId}`);
+          return;
+        }
         console.log(
           `Received order from frontend for plug ${plugId}:`,
           command,

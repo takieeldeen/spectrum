@@ -7,6 +7,7 @@ import {
   Edge,
 } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 
 export type { Edge, Edges };
 
@@ -40,6 +41,7 @@ export const Page = forwardRef<View, PageProps>(
     ref,
   ) => {
     const theme = useTheme();
+    const directionStyle = useDirectionStyle();
 
     return (
       <SafeAreaView
@@ -47,6 +49,7 @@ export const Page = forwardRef<View, PageProps>(
         edges={edges}
         style={[
           styles.container,
+          directionStyle,
           { backgroundColor: backgroundColor ?? theme.background },
           style,
         ]}

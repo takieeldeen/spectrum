@@ -268,13 +268,7 @@ export const ConsumptionBreakdownCard: React.FC<
   const isDark = theme.isDark;
   const isArabic = (i18n.language || "ar").startsWith("ar");
   const isRtl = I18nManager.isRTL || isArabic;
-  const rowDirection = isArabic
-    ? I18nManager.isRTL
-      ? "row"
-      : "row-reverse"
-    : I18nManager.isRTL
-      ? "row-reverse"
-      : "row";
+  const rowDirection = "row";
 
   const cardTitle = title ?? t("DASHBOARD.CONSUMPTION_BREAKDOWN");
   const cardUnit = unit ?? t("DASHBOARD.WATT");
@@ -477,7 +471,7 @@ export const ConsumptionBreakdownCard: React.FC<
       {/* 1. Header: Title */}
       <View
         style={{
-          flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+          flexDirection: "row",
           alignItems: "center",
         }}
       >

@@ -23,6 +23,7 @@ import Lucide from "@react-native-vector-icons/lucide";
 
 import { useTheme } from "@/hooks/use-theme";
 import { getAppFont } from "@/constants/fonts";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 
 /* ==========================================================================
    1. TYPES & CONFIG
@@ -74,6 +75,7 @@ export function Snackbar({
     containsArabic || (i18n.language || "ar").toLowerCase().startsWith("ar");
   const isRtl = isArabic;
   const fontStyle = getAppFont("600", isArabic ? "ar" : "en");
+  const directionStyle = useDirectionStyle();
 
   // In React Native:
   // When native I18nManager.isRTL is active, 'row' natively starts from the right.
@@ -81,13 +83,7 @@ export function Snackbar({
   // This guarantees:
   // In RTL: Icon & Text are on the RIGHT, Close button is on the LEFT.
   // In LTR: Icon & Text are on the LEFT, Close button is on the RIGHT.
-  const flexDir = isRtl
-    ? I18nManager.isRTL
-      ? "row"
-      : "row-reverse"
-    : I18nManager.isRTL
-      ? "row-reverse"
-      : "row";
+  const flexDir = "row";
 
   const [mounted, setMounted] = useState(open);
 
@@ -214,6 +210,7 @@ export function Snackbar({
           styles.container,
           containerVariantStyle,
           { flexDirection: flexDir },
+          directionStyle,
           animatedContainerStyle,
         ]}
       >

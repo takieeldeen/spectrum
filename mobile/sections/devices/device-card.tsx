@@ -76,9 +76,8 @@ export function DeviceCard({
     }
   }, [outletState?.on, timerSheetVisible]);
 
-  const isRtl = I18nManager.isRTL;
-  const manualRtl = !isRtl && isArabic;
-  const rowDir = manualRtl ? "row-reverse" : "row";
+  const isRtl = isArabic;
+  const rowDir = "row";
 
   const deviceState: "on" | "off" | "not-assigned" = !isAssigned
     ? "not-assigned"
@@ -446,9 +445,8 @@ export function DeviceCardSkeleton({
   const styles = createStyles(theme);
   const { i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith("ar") ?? true;
-  const isRtl = I18nManager.isRTL;
-  const manualRtl = !isRtl && isArabic;
-  const rowDir = manualRtl ? "row-reverse" : "row";
+  const isRtl = isArabic;
+  const rowDir = "row";
 
   return (
     <Card style={styles.skeletonCard}>

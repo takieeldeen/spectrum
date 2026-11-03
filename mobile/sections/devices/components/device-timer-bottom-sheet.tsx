@@ -278,7 +278,7 @@ export function DeviceTimerBottomSheet({
                 <View
                   style={[
                     styles.activeTimerRow,
-                    { flexDirection: isRtl ? "row-reverse" : "row" },
+                    { flexDirection: "row" },
                   ]}
                 >
                   <View style={styles.activeTimerIconBox}>
@@ -324,7 +324,7 @@ export function DeviceTimerBottomSheet({
             <View
               style={[
                 styles.sectionHeaderRow,
-                { flexDirection: isRtl ? "row-reverse" : "row" },
+                { flexDirection: "row" },
               ]}
             >
               <Lucide name="clock" size={16} color={theme.textSecondary} />
@@ -342,13 +342,13 @@ export function DeviceTimerBottomSheet({
               style={[
                 styles.testOptionCard,
                 selectedDuration === 1 && styles.testOptionCardSelected,
-                { flexDirection: isRtl ? "row-reverse" : "row" },
+                { flexDirection: "row" },
               ]}
             >
               <View
                 style={[
                   styles.testBadge,
-                  { flexDirection: isRtl ? "row-reverse" : "row" },
+                  { flexDirection: "row" },
                 ]}
               >
                 <Lucide name="flask-conical" size={14} color={theme.primary} />
@@ -377,7 +377,7 @@ export function DeviceTimerBottomSheet({
             <View
               style={[
                 styles.presetGrid,
-                { flexDirection: isRtl ? "row-reverse" : "row" },
+                { flexDirection: "row" },
               ]}
             >
               {ALLOWED_TIMER_DURATIONS.filter(

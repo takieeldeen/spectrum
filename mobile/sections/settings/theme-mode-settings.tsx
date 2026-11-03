@@ -219,7 +219,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginTop: 20,
     },
     headerRow: {
-      flexDirection: i18n.language === "en" ? "row" : "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 12,

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -46,6 +47,7 @@ export const RegisterView = () => {
   const styles = createStyles(theme);
   const router = useRouter();
   const { t } = useTranslation();
+  const directionStyle = useDirectionStyle();
   const snackbar = useSnackbar();
 
   const registerMutation = useRegisterMutation();
@@ -162,7 +164,7 @@ export const RegisterView = () => {
   const isSubmitting = registerMutation.isPending;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       {/* Decorative Brand Circles in Background */}
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />

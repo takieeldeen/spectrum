@@ -171,6 +171,10 @@ export function useActivateStrip() {
   const forcedWifiRef = useRef<boolean>(false);
   const verifyServerRef = useRef<any>(null);
   const verifiedRef = useRef<boolean>(false);
+  // Tracks which GeneralStep phase the last failure occurred in
+  const lastFailedPhaseRef = useRef<GeneralStep | null>(null);
+  // Tracks the last known strip gateway IP (resolved during RESOLVING_GATEWAY)
+  const lastStripIpRef = useRef<string | null>(null);
   // computed states ////////////////////////////////////////////////////
   const isLoading = loadingStates[currentStep];
   const isSuccess = currentStep === "SUCCESS";
@@ -184,11 +188,110 @@ export function useActivateStrip() {
   }, []);
 
   // HELPER FUNCTIONS ///////////////////////////////////////////
-  const retry = async (): Promise<boolean> => {
-    if (lastParamsRef.current) {
-      return activate(lastParamsRef.current);
+
+  /** Skip SoftAP entirely — only run the 45-second backend verification poll. */
+  const retryVerificationOnly = async (
+    params: ActivationParams,
+  ): Promise<boolean> => {
+    isCancelledRef.current = false;
+    verifiedRef.current = false;
+    lastParamsRef.current = params;
+    setError(null);
+
+    try {
+      setCurrentStep("RECONNECTING_HOME_WIFI");
+      setStatusMessage(t("PLUG_ACTIVATION.STATUS_SKIP_TO_VERIFY"));
+      await sleep(1000);
+      if (isCancelledRef.current) return false;
+
+      setCurrentStep("VERIFYING_CONNECTION");
+      setStatusMessage(t("PLUG_ACTIVATION.STATUS_VERIFYING_CONNECTION"));
+
+      const VERIFICATION_TIMEOUT_MS = 45000;
+      const POLL_INTERVAL_MS = 2000;
+      const start = Date.now();
+      let verified = false;
+
+      while (Date.now() - start < VERIFICATION_TIMEOUT_MS) {
+        if (isCancelledRef.current) return false;
+        if (verifiedRef.current) {
+          verified = true;
+          break;
+        }
+        if (params.plugId) {
+          try {
+            const v = await verifyPlugConnection(params.plugId);
+            if (v?.dataReceived) {
+              verified = true;
+              if (v.ipAddress) setActivatedStripIp(v.ipAddress);
+              break;
+            }
+          } catch (_) {}
+        }
+        await sleep(POLL_INTERVAL_MS);
+      }
+
+      if (!verified) throw getErrorBody("VERIFICATION_TIMEOUT");
+
+      setCurrentStep("SUCCESS");
+      setStatusMessage(t("PLUG_ACTIVATION.STATUS_SUCCESS"));
+      return true;
+    } catch (err: any) {
+      const normalizedError: ActivationError = {
+        code: err.code || "VERIFICATION_TIMEOUT",
+        step: err.step || "VERIFYING_CONNECTION",
+        message: err.message || t("PLUG_ACTIVATION.ERR_UNEXPECTED"),
+        recoveryHint: err.recoveryHint || t("PLUG_ACTIVATION.HINT_UNEXPECTED"),
+        rawError: err.rawError || err,
+      };
+      lastFailedPhaseRef.current = "VERIFYING";
+      setError(normalizedError);
+      setCurrentStep("ERROR");
+      setStatusMessage(normalizedError.message);
+      return false;
     }
-    return false;
+  };
+
+  /**
+   * Re-send config to the strip hotspot. If the hotspot is already gone
+   * (strip has already connected to home Wi-Fi), fall back to retryVerificationOnly.
+   */
+  const retryConfigurationOnly = async (
+    params: ActivationParams,
+  ): Promise<boolean> => {
+    const stripIp = lastStripIpRef.current ?? "192.168.1.1";
+    try {
+      // Quick probe: attempt to open TCP connection to the hotspot
+      await sendStripTcpCommand(stripIp, "up:getinfo:all", undefined, 5000);
+    } catch (_) {
+      console.log(
+        "[SmartRetry] Hotspot unreachable — strip already on home Wi-Fi. Falling back to retryVerificationOnly.",
+      );
+      return retryVerificationOnly(params);
+    }
+    // Hotspot is still up — run full activate() from the beginning
+    // (it will reconnect to hotspot and resend config)
+    return activate(params);
+  };
+
+  /**
+   * Smart retry: resumes from the phase where activation last failed
+   * instead of always restarting from Step 1.
+   */
+  const retry = async (): Promise<boolean> => {
+    if (!lastParamsRef.current) return false;
+    const phase = lastFailedPhaseRef.current;
+
+    if (phase === "VERIFYING") {
+      // Strip is on home Wi-Fi — skip SoftAP, just re-poll
+      return retryVerificationOnly(lastParamsRef.current);
+    }
+    if (phase === "CONFIGURING") {
+      // Try resending config; auto-falls back to verify if hotspot is gone
+      return retryConfigurationOnly(lastParamsRef.current);
+    }
+    // PAIRING phase or unknown — full restart from step 1
+    return activate(lastParamsRef.current);
   };
 
   const cancel = () => {
@@ -294,7 +397,6 @@ export function useActivateStrip() {
   };
   // Main Activation Function //////////////////////////////////////////
   const activate = async (params: ActivationParams) => {
-    console.log("triggered");
     lastParamsRef.current = params;
     isCancelledRef.current = false;
     verifiedRef.current = false;
@@ -382,6 +484,7 @@ export function useActivateStrip() {
       const currentPhoneIp = (await WifiManager.getIP()) || phoneIp;
       setDetectedPhoneIp(currentPhoneIp);
       let stripIp = deriveGateway(currentPhoneIp);
+      lastStripIpRef.current = stripIp; // saved for CONFIGURING-phase retry
       console.log(
         `[Activation] Phone IP: ${currentPhoneIp} → Strip Gateway IP: ${stripIp}`,
       );
@@ -392,7 +495,12 @@ export function useActivateStrip() {
         timeoutMs: number = 8000,
       ) => {
         try {
-          return await sendStripTcpCommand(stripIp, command, expected, timeoutMs);
+          return await sendStripTcpCommand(
+            stripIp,
+            command,
+            expected,
+            timeoutMs,
+          );
         } catch (err) {
           const fallbackIp =
             stripIp === "192.168.1.1" ? "192.168.4.1" : "192.168.1.1";
@@ -541,6 +649,9 @@ export function useActivateStrip() {
           caughtErr.recoveryHint || t("PLUG_ACTIVATION.HINT_UNEXPECTED"),
         rawError: caughtErr.rawError || caughtErr,
       };
+      // Record which phase the failure occurred in so smart retry can resume there
+      const failedStep = (caughtErr.step || currentStep) as ActivationStep;
+      lastFailedPhaseRef.current = GENERAL_STEPS_INDEX[failedStep] ?? "PAIRING";
       Alert.alert(
         normalizedError?.rawError?.message ||
           normalizedError?.rawError ||
@@ -557,6 +668,7 @@ export function useActivateStrip() {
 
   return {
     activate,
+    retryVerificationOnly,
     error,
     currentStep,
     generalStep: GENERAL_STEPS_INDEX[currentStep],

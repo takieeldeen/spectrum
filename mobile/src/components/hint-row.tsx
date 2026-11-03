@@ -20,7 +20,7 @@ export function HintRow({ title = 'Try editing', hint = 'app/index.tsx' }: HintR
     <View
       style={[
         styles.stepRow,
-        { flexDirection: isArabic ? 'row-reverse' : 'row' },
+        { flexDirection: 'row' },
       ]}
     >
       <ThemedText type="small">{title}</ThemedText>

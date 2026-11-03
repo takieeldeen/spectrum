@@ -298,7 +298,6 @@ class HardwareService extends EventEmitter {
 
       socket.on("data", async (data) => {
         const raw = data.toString().replace(/\0/g, "").trim();
-        console.log(`📥 [TCP ${clientIp || "unknown"}] Received: "${raw}"`);
 
         // 1. Voltage report
         const voltageMatch = raw.match(/up:power_report:2:(\d+)/i);
@@ -601,7 +600,9 @@ class HardwareService extends EventEmitter {
       // For unidentified sockets, ask for bootinfo + getinfo so they identify themselves
       for (const sock of this.connectedSockets) {
         if (!sock.destroyed && !this.serialBySocket.has(sock)) {
-          console.log(`🔄 Probing unidentified strip socket for identity via bootinfo...`);
+          console.log(
+            `🔄 Probing unidentified strip socket for identity via bootinfo...`,
+          );
           sock.write("up:bootinfo\r\n");
           sock.write("up:getinfo:all\r\n");
           sock.write("up:power_report:2:vol\r\n");

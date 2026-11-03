@@ -296,7 +296,7 @@ export function DeviceNewEditBottomSheet({
           <View
             style={[
               styles.header,
-              { flexDirection: isRtl ? "row-reverse" : "row" },
+              { flexDirection: "row" },
             ]}
           >
             <ThemedText weight="700" style={styles.headerTitle}>
@@ -330,7 +330,7 @@ export function DeviceNewEditBottomSheet({
                     style={[
                       styles.inputWrapper,
                       {
-                        flexDirection: isRtl ? "row-reverse" : "row",
+                        flexDirection: "row",
                         borderColor: errors.name ? "#EF4444" : theme.cardBorder,
                       },
                     ]}
@@ -412,7 +412,7 @@ export function DeviceNewEditBottomSheet({
           <View
             style={[
               styles.actionsRow,
-              { flexDirection: isRtl ? "row-reverse" : "row" },
+              { flexDirection: "row" },
             ]}
           >
             {/* Cancel Button */}

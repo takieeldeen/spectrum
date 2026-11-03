@@ -381,7 +381,7 @@ export function PopoverItem({
         styles.itemRoot,
         {
           direction: isArabic ? "rtl" : "ltr",
-          flexDirection: isArabic ? "row-reverse" : "row",
+          flexDirection: "row",
         },
         disabled && styles.itemDisabled,
         pressed && Platform.OS === "ios" && { opacity: 0.7 },

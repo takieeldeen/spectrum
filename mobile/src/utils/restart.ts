@@ -1,8 +1,17 @@
 import { Platform, DevSettings } from "react-native";
 import * as Updates from "expo-updates";
 
+let RNRestart: { restart?: () => void } | null = null;
+try {
+  RNRestart =
+    require("react-native-restart").default || require("react-native-restart");
+} catch {
+  RNRestart = null;
+}
+
 /**
- * Restarts the application to apply native layout changes (RTL / LTR).
+ * Restarts the application so native I18nManager.isRTL can take effect.
+ * Fast Refresh / a JS-only reload is not enough — Yoga reads the flag at boot.
  */
 export async function restartApp(): Promise<void> {
   if (Platform.OS === "web") {
@@ -12,23 +21,39 @@ export async function restartApp(): Promise<void> {
     return;
   }
 
-  // 1. Try DevSettings.reload first in development
-  if (__DEV__ && DevSettings && typeof DevSettings.reload === "function") {
+  if (RNRestart && typeof RNRestart.restart === "function") {
     try {
-      DevSettings.reload();
+      RNRestart.restart();
       return;
-    } catch (e) {
-      // DevSettings reload fallback
+    } catch {
+      // Fall through
     }
   }
 
-  // 2. Try expo-updates reloadAsync in production / standalone
+  try {
+    const expo = require("expo") as { reloadAppAsync?: (reason?: string) => Promise<void> };
+    if (typeof expo.reloadAppAsync === "function") {
+      await expo.reloadAppAsync("rtl-layout");
+      return;
+    }
+  } catch {
+    // Fall through
+  }
+
   try {
     if (Updates && typeof Updates.reloadAsync === "function") {
       await Updates.reloadAsync();
       return;
     }
-  } catch (e) {
-    // Updates.reloadAsync might not be supported without release channel
+  } catch {
+    // Fall through
+  }
+
+  if (__DEV__ && DevSettings && typeof DevSettings.reload === "function") {
+    try {
+      DevSettings.reload();
+    } catch {
+      // Ignore
+    }
   }
 }

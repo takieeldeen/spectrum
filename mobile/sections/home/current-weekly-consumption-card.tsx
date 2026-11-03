@@ -364,7 +364,7 @@ const CurrentWeeklyConsumption = ({ data }: { data?: any }) => {
         </View>
         <View
           style={{
-            flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+            flexDirection: "row",
             justifyContent: "space-between",
             paddingHorizontal: PADDING_HORIZONTAL,
           }}

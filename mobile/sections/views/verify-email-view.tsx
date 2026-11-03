@@ -14,6 +14,7 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Lucide from "@react-native-vector-icons/lucide";
@@ -38,6 +39,7 @@ export function VerifyEmailView() {
   const { login } = useAuth();
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
+  const directionStyle = useDirectionStyle();
 
   const [otpDigits, setOtpDigits] = useState<string[]>([
     "",
@@ -188,7 +190,7 @@ export function VerifyEmailView() {
     .padStart(2, "0")}`;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       {/* Decorative Brand Circles in Background */}
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />

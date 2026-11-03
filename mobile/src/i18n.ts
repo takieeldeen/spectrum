@@ -1,17 +1,13 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { I18nManager } from "react-native";
-
+import { I18nManager, Platform } from "react-native";
 import ar from "./dictionaries/ar.json";
 import en from "./dictionaries/en.json";
 import { saveStoredLanguage } from "./utils/storage";
-import { restartApp } from "./utils/restart";
 
-// 1. Always allow RTL at the native level so switching to RTL is never blocked
 I18nManager.allowRTL(true);
 
-// Determine initial locale from native I18nManager.isRTL
-const initialLocale = I18nManager.isRTL ? "ar" : "en";
+const initialLocale = "ar";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -19,31 +15,25 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: initialLocale,
-  fallbackLng: "en",
+  fallbackLng: "ar",
   interpolation: {
-    escapeValue: false, // react already safes from xss
+    escapeValue: false,
   },
 });
 
-export async function changeAppLanguage(lang: "ar" | "en") {
-  const isAr = lang === "ar";
+export function isRtlLanguage(lang?: string | null) {
+  return (lang ?? "ar").startsWith("ar");
+}
 
-  // Persist language to local storage
+export async function changeAppLanguage(lang: "ar" | "en") {
   await saveStoredLanguage(lang);
 
-  // Set native RTL layout flag
-  // CRITICAL: Always keep allowRTL(true) enabled so RTL support is never revoked at runtime!
-  I18nManager.allowRTL(true);
-  I18nManager.forceRTL(isAr);
+  if (Platform.OS !== "web") {
+    I18nManager.allowRTL(true);
+    I18nManager.forceRTL(isRtlLanguage(lang));
+  }
 
-  // Switch i18n language
   await i18n.changeLanguage(lang);
-
-  // Brief delay to ensure native SharedPreferences / NSUserDefaults flush to disk
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  // Restart the app to apply the proper native layout (RTL or LTR)
-  await restartApp();
 }
 
 export default i18n;

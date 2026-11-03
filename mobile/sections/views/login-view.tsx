@@ -12,6 +12,7 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -51,6 +52,7 @@ const LoginView = () => {
   const passwordInputRef = useRef<TextInput>(null);
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
+  const directionStyle = useDirectionStyle();
 
   const [showPassword, setShowPassword] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
@@ -160,7 +162,7 @@ const LoginView = () => {
   const isSubmitting = loginMutation.isPending;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       {/* Decorative Brand Circles in Background */}
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />
@@ -212,7 +214,6 @@ const LoginView = () => {
                   <View
                     style={[
                       styles.inputWrapper,
-                      isRtl && styles.inputWrapperRtl,
                       errors.email && styles.inputError,
                     ]}
                   >
@@ -258,7 +259,6 @@ const LoginView = () => {
                   <View
                     style={[
                       styles.inputWrapper,
-                      isRtl && styles.inputWrapperRtl,
                       errors.password && styles.inputError,
                     ]}
                   >

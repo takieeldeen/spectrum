@@ -36,6 +36,7 @@ const PlugActivationDetailsView = ({
     serialNumber?: string;
     ssid?: string;
     password?: string;
+    skipToVerify?: string;
   }>();
   const isDark = theme.isDark;
   const { t, i18n } = useTranslation();
@@ -69,6 +70,7 @@ const PlugActivationDetailsView = ({
     detectedSsid,
     detectedPhoneIp,
     activate,
+    retryVerificationOnly,
     retry,
     cancel,
     reset,
@@ -134,6 +136,7 @@ const PlugActivationDetailsView = ({
 
     const shouldAutoStart =
       params.autoStart === "true" ||
+      params.skipToVerify === "true" ||
       Boolean(params.serialNumber && params.ssid) ||
       Boolean(plugData?.serialNumber && plugData?.SSID);
 
@@ -145,6 +148,19 @@ const PlugActivationDetailsView = ({
       effectiveSsid.trim()
     ) {
       autoStartedRef.current = true;
+
+      if (params.skipToVerify === "true") {
+        // Strip already on home Wi-Fi — skip SoftAP scan, go straight to verify
+        retryVerificationOnly({
+          serialNumber: effectiveSerial.trim(),
+          homeSsid: effectiveSsid.trim(),
+          homePassword: effectivePass.trim(),
+          serverIp: DEFAULT_SERVER_HOST,
+          plugId: params.plugId,
+        });
+        return;
+      }
+
       activate({
         serialNumber: effectiveSerial.trim(),
         homeSsid: effectiveSsid.trim(),
@@ -155,6 +171,7 @@ const PlugActivationDetailsView = ({
     }
   }, [
     params.autoStart,
+    params.skipToVerify,
     params.serialNumber,
     params.ssid,
     params.password,
@@ -167,6 +184,7 @@ const PlugActivationDetailsView = ({
     detectedSsid,
     detectedPhoneIp,
     activate,
+    retryVerificationOnly,
   ]);
 
   const handleCancel = () => {

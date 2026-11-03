@@ -243,7 +243,7 @@ export function CardHeader({
     <View
       style={[
         styles.headerRoot,
-        { flexDirection: isArabic ? "row-reverse" : "row" },
+        { flexDirection: "row" },
         style,
       ]}
       {...rest}
@@ -341,12 +341,12 @@ export function CardActions({
       case "center":
         return "center";
       case "end":
-        return isArabic ? "flex-start" : "flex-end";
+        return "flex-end";
       case "space-between":
         return "space-between";
       case "start":
       default:
-        return isArabic ? "flex-end" : "flex-start";
+        return "flex-start";
     }
   };
 
@@ -357,7 +357,7 @@ export function CardActions({
         !disableSpacing && styles.actionsPadding,
         {
           justifyContent: resolveJustify(),
-          flexDirection: isArabic ? "row-reverse" : "row",
+          flexDirection: "row",
         },
         style,
       ]}

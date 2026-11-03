@@ -76,7 +76,7 @@ export function ThemedText({
       : {};
 
   const resolvedStyle: TextStyle = StyleSheet.flatten([
-    { color: theme[themeColor ?? "text"] },
+    { color: theme[themeColor ?? "text"], textAlign: "left" },
     baseTypeStyle,
     style,
     fontSize !== undefined && { fontSize },

@@ -178,7 +178,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       width: "100%",
       borderRadius: 20,
       padding: 14,
-      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "flex-start",
       gap: 12,
     },
@@ -215,7 +215,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     contentContainer: {
       flex: 1,
       gap: 4,
-      alignItems: i18n.language === "ar" ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
     },
     title: {
       fontSize: 15.5,
@@ -230,7 +230,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       textAlign: i18n.language === "ar" ? "right" : "left",
     },
     metaContainer: {
-      flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       gap: 6,
       paddingTop: 2,

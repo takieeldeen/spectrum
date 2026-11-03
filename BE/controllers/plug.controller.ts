@@ -30,17 +30,18 @@ export class PlugController {
         }
       }
 
-      const newPlug = await plugService.createPlug({
-        ...plugData,
-        user: userId,
-      });
+      const newPlug = await plugService.createPlug(plugData, userId);
 
-      await plugService.assignDevicesToPlug(newPlug._id.toString(), {
-        1: device1,
-        2: device2,
-        3: device3,
-        4: device4,
-      });
+      await plugService.assignDevicesToPlug(
+        newPlug._id.toString(),
+        {
+          1: device1,
+          2: device2,
+          3: device3,
+          4: device4,
+        },
+        userId,
+      );
 
       return res.status(201).json({
         success: true,

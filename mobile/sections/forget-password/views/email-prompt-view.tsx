@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDirectionStyle } from "@/i18n/layout-direction";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -38,6 +39,7 @@ export function EmailPromptView() {
   const { mutate: sendForgetPassword, isPending } = useForgetPasswordMutation();
 
   const isRtl = I18nManager.isRTL || (i18n.language || "ar").startsWith("ar");
+  const directionStyle = useDirectionStyle();
 
   const formSchema = useMemo(
     () =>
@@ -98,7 +100,7 @@ export function EmailPromptView() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, directionStyle]}>
       {/* Decorative Brand Circles in Background */}
       <View style={styles.bubbleTopRight} pointerEvents="none" />
       <View style={styles.bubbleTopLeft} pointerEvents="none" />
@@ -151,7 +153,6 @@ export function EmailPromptView() {
                   <View
                     style={[
                       styles.inputWrapper,
-                      isRtl && styles.inputWrapperRtl,
                       errors.email && styles.inputError,
                     ]}
                   >

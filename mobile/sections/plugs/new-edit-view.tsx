@@ -70,7 +70,7 @@ export function PlugNewEditView() {
 
   // Fetch saved Wi-Fi networks (rule: don't rename data to plural of entity name)
   const { data: wifiList = [], isLoading: isLoadingWifi } = useGetWifiList();
-
+  console.log(wifiList, "WIFI LIST");
   // Add Wi-Fi modal state
   const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
   const [newWifiSsid, setNewWifiSsid] = useState("");
@@ -495,6 +495,10 @@ export function PlugNewEditView() {
                   value={value}
                   onChange={(val) => {
                     onChange(val);
+                    const selected = wifiList.find((wifi) => wifi.ssid === val);
+                    if (selected?.password) {
+                      setValue("wifiPassword", selected.password);
+                    }
                   }}
                   options={wifiList}
                   getOptionValue={(wifi) => wifi.ssid}
