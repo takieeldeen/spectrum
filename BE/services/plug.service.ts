@@ -11,7 +11,16 @@ export class PlugService {
    * @returns The created plug entity
    */
   async createPlug(data: Partial<IPlug>): Promise<IPlug> {
-    return await PlugModel.create(data);
+    const plug = await PlugModel.create(data);
+    // Register immediately in HardwareService in-memory map so the strip
+    // is routable the moment it connects (without waiting for a DB lookup).
+    if (plug.serialNumber) {
+      try {
+        const { default: hardwareService } = await import("./hardware.service");
+        hardwareService.bindPlugToSerial(plug._id.toString(), plug.serialNumber);
+      } catch (_) {}
+    }
+    return plug;
   }
 
   /**

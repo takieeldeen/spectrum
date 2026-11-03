@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "spectrum",
+    "name": "Spectrum",
     "slug": "spectrum",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -75,6 +75,14 @@
           "supportsRTL": true,
           "forcesRTL": false,
           "supportedLocales": ["en", "ar"]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],

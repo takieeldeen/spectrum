@@ -416,7 +416,7 @@ export function useActivateStrip() {
 
       // Send Server IP //////////////////////////////
       setCurrentStep("SENDING_SERVER_IP");
-      const targetServerIp = DEFAULT_SERVER_HOST;
+      const targetServerIp = params.serverIp || DEFAULT_SERVER_HOST;
       setStatusMessage(
         t("PLUG_ACTIVATION.STATUS_SENDING_SERVER_IP", {
           ip: targetServerIp,

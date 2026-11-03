@@ -7,6 +7,7 @@ class HardwareService extends EventEmitter {
   private plugIdsBySerial = new Map<string, Set<string>>();
   private serialByPlugId = new Map<string, string>();
   private serialByIp = new Map<string, string>();
+  private pendingCommandsBySerial = new Map<string, string[]>();
   private voltageBySocket = new Map<net.Socket, number>();
   private connectedSockets = new Set<net.Socket>();
   private lastDataReceivedBySerial = new Map<string, number>();
@@ -73,6 +74,18 @@ class HardwareService extends EventEmitter {
     console.log(
       `🔗 Strip socket bound to serial [${cleanSerial}] (IP: ${clientIp || "unknown"}, Mapped Plugs: ${count})`,
     );
+
+    // Drain any pending commands that were queued while the strip was disconnected
+    const pending = this.pendingCommandsBySerial.get(cleanSerial);
+    if (pending && pending.length > 0) {
+      this.pendingCommandsBySerial.delete(cleanSerial);
+      console.log(
+        `⚡ Draining ${pending.length} queued command(s) to strip [${cleanSerial}]`,
+      );
+      for (const cmd of pending) {
+        if (!socket.destroyed) socket.write(cmd);
+      }
+    }
   }
 
   public async initDatabasePlugs() {
@@ -258,14 +271,19 @@ class HardwareService extends EventEmitter {
           `⚡ Auto-identified strip by known IP ${clientIp} -> serial [${knownSerial}]`,
         );
         this.bindSocketToSerial(socket, knownSerial);
+      } else {
+        // Ask unidentified socket for bootinfo immediately so it identifies its serial
+        console.log(
+          `🔍 Unidentified strip connected from ${clientIp}. Requesting up:bootinfo...`,
+        );
+        socket.write("up:bootinfo\r\n");
       }
 
-      // Ask the strip for bootinfo, getinfo, and voltage immediately
-      socket.write("up:bootinfo\r\n");
+      // Ask the strip for getinfo and voltage immediately
       socket.write("up:getinfo:all\r\n");
       socket.write("up:power_report:2:vol\r\n");
 
-      // Poll state every 3 seconds to keep power (watts) updated
+      // Poll state every 4 seconds to keep power (watts) updated
       const pollInterval = setInterval(() => {
         if (!socket.destroyed) {
           if (!this.serialBySocket.has(socket)) {
@@ -273,14 +291,14 @@ class HardwareService extends EventEmitter {
           }
           socket.write("up:getinfo:all\r\n");
           socket.write("up:power_report:2:vol\r\n");
-          socket.write("up:power_report:2\r\n");
         } else {
           clearInterval(pollInterval);
         }
-      }, 3000);
+      }, 4000);
 
       socket.on("data", async (data) => {
         const raw = data.toString().replace(/\0/g, "").trim();
+        console.log(`📥 [TCP ${clientIp || "unknown"}] Received: "${raw}"`);
 
         // 1. Voltage report
         const voltageMatch = raw.match(/up:power_report:2:(\d+)/i);
@@ -297,8 +315,33 @@ class HardwareService extends EventEmitter {
           const extracted = this.extractSerialFromRaw(raw);
           if (extracted) {
             detectedSerial = extracted;
+            console.log(
+              `⚡ Identified serial [${detectedSerial}] from raw payload from ${clientIp}`,
+            );
             this.bindSocketToSerial(socket, detectedSerial);
           }
+        }
+
+        // Check DB for matching IP if still unidentified
+        if (!detectedSerial && clientIp) {
+          try {
+            const PlugModel = (await import("../models/plug.model")).default;
+            const plugByIp = await PlugModel.findOne({ ipAddress: clientIp });
+            if (plugByIp && plugByIp.serialNumber) {
+              detectedSerial = this.normalizeSerial(plugByIp.serialNumber);
+              console.log(
+                `⚡ Identified strip by DB IP match: ${clientIp} -> serial [${detectedSerial}]`,
+              );
+              this.bindSocketToSerial(socket, detectedSerial);
+            }
+          } catch (_) {}
+        }
+
+        // As soon as serial is known, mark data received timestamp so verify endpoint succeeds
+        if (detectedSerial) {
+          const now = Date.now();
+          this.lastDataReceivedBySerial.set(detectedSerial, now);
+          this.lastDataReceivedBySerial.set(`TONLY_TAP_${detectedSerial}`, now);
         }
 
         // 3. Find the plugIds associated with this serial
@@ -307,19 +350,16 @@ class HardwareService extends EventEmitter {
           : undefined;
 
         // Auto-lookup plugIds from database by serialNumber if not yet in memory
-        if (!targetPlugIds || targetPlugIds.size === 0) {
+        if (detectedSerial && (!targetPlugIds || targetPlugIds.size === 0)) {
           try {
             const PlugModel = (await import("../models/plug.model")).default;
-            let plugs: any[] = [];
-            if (detectedSerial) {
-              plugs = await PlugModel.find({
-                $or: [
-                  { serialNumber: detectedSerial },
-                  { serialNumber: `TONLY_TAP_${detectedSerial}` },
-                  { serialNumber: new RegExp(detectedSerial, "i") },
-                ],
-              });
-            }
+            const plugs = await PlugModel.find({
+              $or: [
+                { serialNumber: detectedSerial },
+                { serialNumber: `TONLY_TAP_${detectedSerial}` },
+                { serialNumber: new RegExp(detectedSerial, "i") },
+              ],
+            });
 
             for (const plug of plugs) {
               const pId = plug._id.toString();
@@ -327,15 +367,19 @@ class HardwareService extends EventEmitter {
               this.bindPlugToSerial(pId, serial);
             }
 
-            targetPlugIds = detectedSerial
-              ? this.plugIdsBySerial.get(detectedSerial)
-              : undefined;
+            targetPlugIds = this.plugIdsBySerial.get(detectedSerial);
           } catch (err) {
             // Ignore DB lookup error
           }
         }
 
         if (!targetPlugIds || targetPlugIds.size === 0) {
+          if (!detectedSerial) {
+            console.warn(
+              `⏳ Socket from ${clientIp} still unidentified. Re-requesting bootinfo...`,
+            );
+            socket.write("up:bootinfo\r\n");
+          }
           return;
         }
 
@@ -406,7 +450,10 @@ class HardwareService extends EventEmitter {
           const now = Date.now();
           if (detectedSerial) {
             this.lastDataReceivedBySerial.set(detectedSerial, now);
-            this.lastDataReceivedBySerial.set(`TONLY_TAP_${detectedSerial}`, now);
+            this.lastDataReceivedBySerial.set(
+              `TONLY_TAP_${detectedSerial}`,
+              now,
+            );
           }
 
           // Broadcast to all users/plugs connected to this physical strip
@@ -425,7 +472,10 @@ class HardwareService extends EventEmitter {
             this.lastPayloadByPlugId.set(plugId, payload);
             if (detectedSerial) {
               this.lastPayloadBySerial.set(detectedSerial, payload);
-              this.lastPayloadBySerial.set(`TONLY_TAP_${detectedSerial}`, payload);
+              this.lastPayloadBySerial.set(
+                `TONLY_TAP_${detectedSerial}`,
+                payload,
+              );
             }
 
             this.emit("hardware_data", payload);
@@ -548,10 +598,10 @@ class HardwareService extends EventEmitter {
       socket.write("up:getinfo:all\r\n");
       socket.write("up:power_report:2:vol\r\n");
     } else {
-      // Proactively ask any unidentified connected sockets for bootinfo so they identify themselves
+      // For unidentified sockets, ask for bootinfo + getinfo so they identify themselves
       for (const sock of this.connectedSockets) {
         if (!sock.destroyed && !this.serialBySocket.has(sock)) {
-          console.log(`🔄 Probing unidentified strip socket for identity...`);
+          console.log(`🔄 Probing unidentified strip socket for identity via bootinfo...`);
           sock.write("up:bootinfo\r\n");
           sock.write("up:getinfo:all\r\n");
           sock.write("up:power_report:2:vol\r\n");
@@ -585,33 +635,22 @@ class HardwareService extends EventEmitter {
         this.socketBySerial.get(`TONLY_TAP_${cleanSerial}`)
       : undefined;
 
-    // If socket is not yet bound to this serial, but we have connected sockets, probe them and wait
-    if ((!socket || socket.destroyed) && this.connectedSockets.size > 0) {
-      const unidentified = Array.from(this.connectedSockets).filter(
-        (s) => !s.destroyed && !this.serialBySocket.has(s),
-      );
-      if (unidentified.length > 0) {
-        console.log(
-          `🔍 Attempting instant socket revival for [${cleanSerial || plugId}] with ${unidentified.length} unidentified socket(s)...`,
-        );
-        for (const s of unidentified) {
-          s.write("up:bootinfo\r\n");
-          s.write("up:getinfo:all\r\n");
-        }
-        await new Promise((resolve) => setTimeout(resolve, 350));
-        socket = cleanSerial
-          ? this.socketBySerial.get(cleanSerial) ||
-            this.socketBySerial.get(`TONLY_TAP_${cleanSerial}`)
-          : undefined;
-      }
-    }
-
     if (!socket || socket.destroyed) {
-      console.error(
-        `Cannot send command. No active strip connection found for serial [${
-          cleanSerial || plugId
-        }] (connected strips: ${this.connectedSockets.size}).`,
-      );
+      // Queue the command — it will be sent when the strip reconnects
+      if (cleanSerial) {
+        const queue = this.pendingCommandsBySerial.get(cleanSerial) ?? [];
+        const payload = command.endsWith("\r\n") ? command : command + "\r\n";
+        queue.push(payload);
+        // Keep only the last 5 commands to avoid stale state buildup
+        this.pendingCommandsBySerial.set(cleanSerial, queue.slice(-5));
+        console.warn(
+          `⏳ No socket for [${cleanSerial}] (connected strips: ${this.connectedSockets.size}). Command queued for reconnect.`,
+        );
+      } else {
+        console.error(
+          `Cannot send command. No serial resolved for plug [${plugId}] and no socket available.`,
+        );
+      }
       return;
     }
 
